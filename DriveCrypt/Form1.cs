@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -149,6 +148,32 @@ namespace DriveCrypt
 
             _userCryptor = new UserCryptor();
             _userCryptor.LoadKeys(password);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            var service = new DriveService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = _credential,
+                ApplicationName = "DriveCrypt",
+            });
+
+            var fileMetadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = "TestFile.dc",
+                MimeType = "application/vnd.google-apps.file",
+                Parents = new List<string> { _folderId }
+            };
+
+            FilesResource.CreateMediaUpload request;
+            using (var stream = new FileStream("files/test.txt", FileMode.Open))
+            {
+                request = service.Files.Create(fileMetadata, stream, "text/plain");
+                request.Fields = "id";
+                request.Upload();
+            }
+            var file = request.ResponseBody;
+            Console.WriteLine("File ID: " + file.Id);
         }
     }
 }
