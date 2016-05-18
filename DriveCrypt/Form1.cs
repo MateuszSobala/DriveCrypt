@@ -33,6 +33,32 @@ namespace DriveCrypt
             GetFiles();
         }
 
+        public class DirectoryWatcher 
+        {
+            private FileSystemWatcher watcher;
+
+            public DirectoryWatcher(string path)
+            {
+                watcher = new FileSystemWatcher(path);
+                watcher.Changed += new FileSystemEventHandler(onChangeEvent);
+                watcher.Created += new FileSystemEventHandler(onChangeEvent);
+                watcher.Deleted += new FileSystemEventHandler(onChangeEvent);
+                watcher.Renamed += new RenamedEventHandler(onRenameEvent);
+
+                watcher.EnableRaisingEvents = true;
+            }
+            
+            public static void onChangeEvent(object source, FileSystemEventArgs e)
+            {
+                MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+            }
+
+            public static void onRenameEvent(object source, RenamedEventArgs e)
+            {
+                MessageBox.Show("File: " + e.OldFullPath + "renamed to " + e.FullPath);
+            }
+        }
+
         private void Authorize()
         {
             using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
@@ -87,7 +113,7 @@ namespace DriveCrypt
             });
 
             var request = service.Files.List();
-            request.Q = $"'{_folderId}' in parents";
+            request.Q = string.Format("'{0}' in parents", _folderId);
 
             var response = await request.ExecuteAsync();
 
@@ -174,6 +200,32 @@ namespace DriveCrypt
             }
             var file = request.ResponseBody;
             Console.WriteLine("File ID: " + file.Id);
+        }
+
+        private void choseFolder_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+
+            DialogResult result = fbd.ShowDialog();
+
+            if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
+            {
+                string[] files = Directory.GetFiles(fbd.SelectedPath);
+                string[] dirs = Directory.GetDirectories(fbd.SelectedPath);
+
+                foreach (var item in dirs)
+                {
+                    string[] name = item.Split('\\');
+                    FolderList.Items.Add(name.Last());
+                }
+
+                foreach (var item in files)
+                {
+                    string[] name = item.Split('\\');
+                    FolderList.Items.Add(name.Last());
+                }
+            }
+            DirectoryWatcher watcher = new DirectoryWatcher(fbd.SelectedPath);
         }
     }
 }
