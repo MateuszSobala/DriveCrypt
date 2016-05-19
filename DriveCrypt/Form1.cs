@@ -158,27 +158,41 @@ namespace DriveCrypt
 
         private void button4_Click(object sender, EventArgs e)
         {
-            var service = new DriveService(new BaseClientService.Initializer()
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                HttpClientInitializer = _credential,
-                ApplicationName = "DriveCrypt",
-            });
+                var service = new DriveService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = _credential,
+                    ApplicationName = "DriveCrypt",
+                });
 
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File
-            {
-                Name = "TestFile.dc",
-                MimeType = "application/vnd.google-apps.file",
-                Parents = new List<string> { _folderId }
-            };
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                {
+                    Name = openFileDialog1.FileName,
+                    MimeType = GetMimeType(openFileDialog1.FileName),
+                    Parents = new List<string> { _folderId }
+                };
 
-            FilesResource.CreateMediaUpload request;
-            using (var stream = new FileStream("files/test.txt", FileMode.Open))
-            {
-                request = service.Files.Create(fileMetadata, stream, "text/plain");
-                request.Fields = "id";
-                request.Upload();
+                FilesResource.CreateMediaUpload request;
+                using (var stream = new FileStream(openFileDialog1.FileName, FileMode.Open))
+                {
+                    request = service.Files.Create(fileMetadata, stream, "text/plain");
+                    request.Fields = "id";
+                    request.Upload();
+                }
+                var file = request.ResponseBody;
             }
-            var file = request.ResponseBody;
+        }
+
+        // tries to figure out the mime type of the file.
+        private static string GetMimeType(string fileName)
+        {
+            string mimeType = "application/unknown";
+            string ext = System.IO.Path.GetExtension(fileName).ToLower();
+            Microsoft.Win32.RegistryKey regKey = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(ext);
+            if (regKey != null && regKey.GetValue("Content Type") != null)
+                mimeType = regKey.GetValue("Content Type").ToString();
+            return mimeType;
         }
         //-----------------------------------------------------------------------------------------------------------
 
@@ -247,21 +261,23 @@ namespace DriveCrypt
         {
             FolderBrowserDialog fbd = new FolderBrowserDialog();
 
-            DialogResult result = fbd.ShowDialog();
-            this.directoryPath = fbd.SelectedPath;
-            refreshDirecotryList();
-            directoryWatcherCreate();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                directoryPath = fbd.SelectedPath;
+                refreshDirecotryList();
+                directoryWatcherCreate();
+            }
         }
 
         private void refreshDirecotryList()
         {
             FolderList.Items.Clear();
-            if (!string.IsNullOrWhiteSpace(this.directoryPath))
+            if (!string.IsNullOrWhiteSpace(directoryPath))
             {
-                string[] files = Directory.GetFiles(this.directoryPath);
-                string[] dirs = Directory.GetDirectories(this.directoryPath);
+                string[] files = Directory.GetFiles(directoryPath);
+                string[] dirs = Directory.GetDirectories(directoryPath);
 
-                textBox2.Text = fbd.SelectedPath + ":";
+                textBox2.Text = directoryPath;
 
                 foreach (var item in dirs)
                 {
@@ -349,6 +365,24 @@ namespace DriveCrypt
                     string temppath = Path.Combine(destDirName, subdir.Name);
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs);
                 }
+            }
+        }
+
+        private void exportRsaKeys_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                UserCryptor.ExportKeys(_credential.UserId, fbd.SelectedPath);
+            }
+        }
+
+        private void importRsaKeys_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                UserCryptor.ImportKeys(openFileDialog1.FileName);
             }
         }
     }

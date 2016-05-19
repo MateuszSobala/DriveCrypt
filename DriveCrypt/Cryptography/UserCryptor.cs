@@ -25,7 +25,7 @@ namespace DriveCrypt.Cryptography
         const string PubKeyFile = @"c:\DriveCrypt\keys\rsaPublicKey.txt";
 
         // Private key file
-        const string PrivKeyFile = @"priv.dckey";
+        private const string PrivKeyFileSuffix = @"priv.dckey";
 
         // Key container name for
         // private/public key value pair.
@@ -44,9 +44,19 @@ namespace DriveCrypt.Cryptography
             rsa.PersistKeyInCsp = true;
         }
 
+        public static string GetPrivateKeyPath(string userId)
+        {
+            return Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + GetPrivateKeyFilename(userId);
+        }
+
+        public static string GetPrivateKeyFilename(string userId)
+        {
+            return userId + PrivKeyFileSuffix;
+        }
+
         public void LoadKeys(string userId, string masterPassword)
         {
-            string pathToKeyFile = Directory.GetCurrentDirectory() + Path.PathSeparator + userId + PrivKeyFile;
+            string pathToKeyFile = GetPrivateKeyPath(userId);
             if (!File.Exists(pathToKeyFile))
             {
                 GenerateKeys();
@@ -62,13 +72,26 @@ namespace DriveCrypt.Cryptography
 
         public void SaveKeys(string userId, string masterPassword)
         {
-            string pathToKeyFile = Directory.GetCurrentDirectory() + Path.PathSeparator + userId + PrivKeyFile;
+            string pathToKeyFile = GetPrivateKeyPath(userId);
             if (!File.Exists(pathToKeyFile))
             {
                 var rsaKeysXml = rsa.ToXmlString(true);
 
                 FileCryptor.EncryptAndSaveRsaKeys(rsaKeysXml, pathToKeyFile, masterPassword);
             }
+        }
+
+        public static void ExportKeys(string userId, string directory)
+        {
+            string pathToKeyFile = GetPrivateKeyPath(userId);
+            string keyFilenameForUser = GetPrivateKeyFilename(userId);
+
+            File.Copy(pathToKeyFile, directory + keyFilenameForUser);
+        }
+
+        public static void ImportKeys(string sInputFilename)
+        {
+            File.Copy(sInputFilename, Directory.GetCurrentDirectory() + sInputFilename.Substring(sInputFilename.LastIndexOf(Path.DirectorySeparatorChar)));
         }
 
         public void LoadPublicKey(string sInputFilename)
