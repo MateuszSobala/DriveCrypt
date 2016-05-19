@@ -10,6 +10,8 @@ using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using DriveCrypt.Cryptography;
 using System.Runtime.InteropServices;
+using Google.Apis.Oauth2.v2;
+using Google.Apis.Oauth2.v2.Data;
 
 namespace DriveCrypt
 {
@@ -20,6 +22,7 @@ namespace DriveCrypt
         private readonly string[] _accessScopes = { DriveService.Scope.Drive };
         private UserCredential _credential;
         private UserCryptor _userCryptor;
+        private Userinfoplus _userInfo;
 
         private string _folderId;
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
@@ -53,6 +56,17 @@ namespace DriveCrypt
                     CancellationToken.None,
                     new FileDataStore(credPath, true)).Result;
             }
+        }
+
+        private async void GetUserId()
+        {
+            var oauthSerivce = new Oauth2Service(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = _credential,
+                ApplicationName = "DriveCrypt",
+            });
+
+            _userInfo = await oauthSerivce.Userinfo.Get().ExecuteAsync();
         }
 
         private void MaintainMainFolder()
