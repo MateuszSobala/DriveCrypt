@@ -25,7 +25,7 @@ namespace DriveCrypt.Cryptography
         const string PubKeyFile = @"c:\DriveCrypt\keys\rsaPublicKey.txt";
 
         // Private key file
-        const string PrivKeyFile = @"c:\DriveCrypt\keys\rsaPrivKey.txt";
+        const string PrivKeyFile = @"priv.dckey";
 
         // Key container name for
         // private/public key value pair.
@@ -44,28 +44,30 @@ namespace DriveCrypt.Cryptography
             rsa.PersistKeyInCsp = true;
         }
 
-        public void LoadKeys(string masterPassword)
+        public void LoadKeys(string userId, string masterPassword)
         {
-            if (!File.Exists(PrivKeyFile))
+            string pathToKeyFile = Directory.GetCurrentDirectory() + Path.PathSeparator + userId + PrivKeyFile;
+            if (!File.Exists(pathToKeyFile))
             {
                 GenerateKeys();
-                SaveKeys(masterPassword);
+                SaveKeys(userId, masterPassword);
             }
 
-            var rsaKeysXml = FileCryptor.LoadAndDecryptRsaKeys(PrivKeyFile, masterPassword);
+            var rsaKeysXml = FileCryptor.LoadAndDecryptRsaKeys(pathToKeyFile, masterPassword);
 
             rsa = new RSACryptoServiceProvider();
             rsa.FromXmlString(rsaKeysXml);
             rsa.PersistKeyInCsp = true;
         }
 
-        public void SaveKeys(string masterPassword)
+        public void SaveKeys(string userId, string masterPassword)
         {
-            if (!File.Exists(PrivKeyFile))
+            string pathToKeyFile = Directory.GetCurrentDirectory() + Path.PathSeparator + userId + PrivKeyFile;
+            if (!File.Exists(pathToKeyFile))
             {
                 var rsaKeysXml = rsa.ToXmlString(true);
 
-                FileCryptor.EncryptAndSaveRsaKeys(rsaKeysXml, PrivKeyFile, masterPassword);
+                FileCryptor.EncryptAndSaveRsaKeys(rsaKeysXml, pathToKeyFile, masterPassword);
             }
         }
 

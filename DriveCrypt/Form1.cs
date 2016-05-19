@@ -173,7 +173,7 @@ namespace DriveCrypt
             var password = textBox1.Text;
 
             _userCryptor = new UserCryptor();
-            _userCryptor.LoadKeys(password);
+            _userCryptor.LoadKeys(_credential.UserId, password);
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -199,7 +199,6 @@ namespace DriveCrypt
                 request.Upload();
             }
             var file = request.ResponseBody;
-            Console.WriteLine("File ID: " + file.Id);
         }
 
         private void choseFolder_Click(object sender, EventArgs e)
@@ -212,6 +211,8 @@ namespace DriveCrypt
             {
                 string[] files = Directory.GetFiles(fbd.SelectedPath);
                 string[] dirs = Directory.GetDirectories(fbd.SelectedPath);
+
+                textBox2.Text = fbd.SelectedPath + ":";
 
                 foreach (var item in dirs)
                 {

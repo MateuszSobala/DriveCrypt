@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.button1 = new System.Windows.Forms.Button();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.button2 = new System.Windows.Forms.Button();
@@ -37,6 +38,7 @@
             this.button4 = new System.Windows.Forms.Button();
             this.choseFolder = new System.Windows.Forms.Button();
             this.FolderList = new System.Windows.Forms.ListBox();
+            this.textBox2 = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // button1
@@ -119,11 +121,20 @@
             this.FolderList.Size = new System.Drawing.Size(192, 212);
             this.FolderList.TabIndex = 8;
             // 
+            // textBox2
+            // 
+            this.textBox2.Enabled = false;
+            this.textBox2.Location = new System.Drawing.Point(278, 20);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(192, 20);
+            this.textBox2.TabIndex = 9;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(482, 262);
+            this.Controls.Add(this.textBox2);
             this.Controls.Add(this.FolderList);
             this.Controls.Add(this.choseFolder);
             this.Controls.Add(this.button4);
@@ -132,8 +143,9 @@
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "Drive Crypt";
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -149,6 +161,7 @@
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button choseFolder;
         private System.Windows.Forms.ListBox FolderList;
+        private System.Windows.Forms.TextBox textBox2;
     }
 }
 
