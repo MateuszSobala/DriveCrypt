@@ -17,47 +17,27 @@ namespace DriveCrypt
     {
         public const string FolderName = "DriveCrypt";
 
-        private readonly string[] _accessScopes = {DriveService.Scope.Drive};
+        private readonly string[] _accessScopes = { DriveService.Scope.Drive };
         private UserCredential _credential;
         private UserCryptor _userCryptor;
 
         private string _folderId;
-        private IEnumerable<Google.Apis.Drive.v3.Data.File> _files; 
+        private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
+        private string directoryPath;
+        private FileSystemWatcher watcher;
 
         public Form1()
         {
             InitializeComponent();
+            this.AllowDrop = true;
+            this.DragEnter += new DragEventHandler(dragEnter);
+            this.DragDrop += new DragEventHandler(dragDrop);
 
             Authorize();
             MaintainMainFolder();
             GetFiles();
         }
 
-        public class DirectoryWatcher 
-        {
-            private FileSystemWatcher watcher;
-
-            public DirectoryWatcher(string path)
-            {
-                watcher = new FileSystemWatcher(path);
-                watcher.Changed += new FileSystemEventHandler(onChangeEvent);
-                watcher.Created += new FileSystemEventHandler(onChangeEvent);
-                watcher.Deleted += new FileSystemEventHandler(onChangeEvent);
-                watcher.Renamed += new RenamedEventHandler(onRenameEvent);
-
-                watcher.EnableRaisingEvents = true;
-            }
-            
-            public static void onChangeEvent(object source, FileSystemEventArgs e)
-            {
-                MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
-            }
-
-            public static void onRenameEvent(object source, RenamedEventArgs e)
-            {
-                MessageBox.Show("File: " + e.OldFullPath + "renamed to " + e.FullPath);
-            }
-        }
 
         private void Authorize()
         {
@@ -201,17 +181,86 @@ namespace DriveCrypt
             var file = request.ResponseBody;
             Console.WriteLine("File ID: " + file.Id);
         }
+        //-----------------------------------------------------------------------------------------------------------
+
+        public void onChangeEvent(object source, FileSystemEventArgs e)
+        {
+            MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+        }
+
+        public void onCreateEvent(object source, FileSystemEventArgs e)
+        {
+            FileAttributes atributes = File.GetAttributes(e.FullPath);
+            if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
+            {
+                while (IsFileLocked(e.FullPath))
+                {
+                    Thread.Sleep(100);
+                }
+                MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+            }
+            //refreshDirecotryList();
+        }
+
+        public void onDeleteEvent(object source, FileSystemEventArgs e)
+        {
+            MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+            //refreshDirecotryList();
+        }
+
+        public void onRenameEvent(object source, RenamedEventArgs e)
+        {
+            MessageBox.Show("File: " + e.OldFullPath + "renamed to " + e.FullPath);
+            //refreshDirecotryList();
+        }
+
+        private static bool IsFileLocked(string filePath)
+        {
+            FileInfo file = new FileInfo(filePath);
+            FileStream stream = null;
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+            finally
+            {
+                if (stream != null)
+                    stream.Close();
+            }
+            return false;
+        }
+
+        private void directoryWatcherCreate()
+        {
+            this.watcher = new FileSystemWatcher(this.directoryPath);
+
+            this.watcher.Created += new FileSystemEventHandler(onCreateEvent);
+            this.watcher.Deleted += new FileSystemEventHandler(onDeleteEvent);
+
+            watcher.EnableRaisingEvents = true;
+        }
 
         private void choseFolder_Click(object sender, EventArgs e)
         {
             FolderBrowserDialog fbd = new FolderBrowserDialog();
 
             DialogResult result = fbd.ShowDialog();
+            this.directoryPath = fbd.SelectedPath;
+            refreshDirecotryList();
+            directoryWatcherCreate();
+        }
 
-            if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
+        private void refreshDirecotryList()
+        {
+            FolderList.Items.Clear();
+            if (!string.IsNullOrWhiteSpace(this.directoryPath))
             {
-                string[] files = Directory.GetFiles(fbd.SelectedPath);
-                string[] dirs = Directory.GetDirectories(fbd.SelectedPath);
+                string[] files = Directory.GetFiles(this.directoryPath);
+                string[] dirs = Directory.GetDirectories(this.directoryPath);
 
                 foreach (var item in dirs)
                 {
@@ -225,7 +274,81 @@ namespace DriveCrypt
                     FolderList.Items.Add(name.Last());
                 }
             }
-            DirectoryWatcher watcher = new DirectoryWatcher(fbd.SelectedPath);
+        }
+
+        private void dragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+        }
+
+        private void dragDrop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            foreach (string file in files)
+            {
+                MessageBox.Show(file);
+                copyFile(file);
+            }
+        }
+
+        private void copyFile(string file)
+        {
+            FileAttributes atributes = File.GetAttributes(file);
+            if ((atributes & FileAttributes.Directory) == FileAttributes.Directory)
+            {
+                DirectoryCopy(file, this.directoryPath, true);
+            }
+            else
+            {
+                string[] fileName = file.Split('\\');
+                try
+                {
+                    File.Copy(file, this.directoryPath + '\\' + fileName.Last());
+                }
+                catch
+                {
+                    MessageBox.Show("First choose directory");
+                }
+            }
+        }
+
+        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+        {
+            // Get the subdirectories for the specified directory.
+            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException(
+                    "Source directory does not exist or could not be found: "
+                    + sourceDirName);
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+            // If the destination directory doesn't exist, create it.
+            if (!Directory.Exists(destDirName))
+            {
+                Directory.CreateDirectory(destDirName);
+            }
+
+            // Get the files in the directory and copy them to the new location.
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                string temppath = Path.Combine(destDirName, file.Name);
+                file.CopyTo(temppath, false);
+            }
+
+            // If copying subdirectories, copy them and their contents to new location.
+            if (copySubDirs)
+            {
+                foreach (DirectoryInfo subdir in dirs)
+                {
+                    string temppath = Path.Combine(destDirName, subdir.Name);
+                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                }
+            }
         }
     }
 }
