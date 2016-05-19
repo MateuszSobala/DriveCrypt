@@ -28,23 +28,16 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.LogIn = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.button2 = new System.Windows.Forms.Button();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.button3 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
+            this.choseFolder = new System.Windows.Forms.Button();
+            this.FolderList = new System.Windows.Forms.ListBox();
             this.SuspendLayout();
-            // 
-            // LogIn
-            // 
-            this.LogIn.Location = new System.Drawing.Point(12, 12);
-            this.LogIn.Name = "LogIn";
-            this.LogIn.Size = new System.Drawing.Size(75, 23);
-            this.LogIn.TabIndex = 0;
-            this.LogIn.Text = "LogIn";
-            this.LogIn.UseVisualStyleBackColor = true;
             // 
             // button1
             // 
@@ -97,17 +90,48 @@
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(12, 227);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(75, 23);
+            this.button4.TabIndex = 6;
+            this.button4.Text = "Send file";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // choseFolder
+            // 
+            this.choseFolder.Location = new System.Drawing.Point(197, 117);
+            this.choseFolder.Name = "choseFolder";
+            this.choseFolder.Size = new System.Drawing.Size(75, 23);
+            this.choseFolder.TabIndex = 7;
+            this.choseFolder.Text = "Chose folder";
+            this.choseFolder.UseVisualStyleBackColor = true;
+            this.choseFolder.Click += new System.EventHandler(this.choseFolder_Click);
+            // 
+            // FolderList
+            // 
+            this.FolderList.FormattingEnabled = true;
+            this.FolderList.HorizontalScrollbar = true;
+            this.FolderList.Location = new System.Drawing.Point(278, 46);
+            this.FolderList.Name = "FolderList";
+            this.FolderList.Size = new System.Drawing.Size(192, 212);
+            this.FolderList.TabIndex = 8;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 262);
+            this.ClientSize = new System.Drawing.Size(482, 262);
+            this.Controls.Add(this.FolderList);
+            this.Controls.Add(this.choseFolder);
+            this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
-            this.Controls.Add(this.LogIn);
             this.Name = "Form1";
             this.Text = "Form1";
             this.ResumeLayout(false);
@@ -116,14 +140,15 @@
         }
 
         #endregion
-
-        private System.Windows.Forms.Button LogIn;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button choseFolder;
+        private System.Windows.Forms.ListBox FolderList;
     }
 }
 
