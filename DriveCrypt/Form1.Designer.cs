@@ -37,6 +37,9 @@
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.userNameLabel = new System.Windows.Forms.Label();
             this.logout = new System.Windows.Forms.Button();
+            this.label1 = new System.Windows.Forms.Label();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.share = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -71,7 +74,7 @@
             // 
             // chooseFolder
             // 
-            this.chooseFolder.Location = new System.Drawing.Point(194, 139);
+            this.chooseFolder.Location = new System.Drawing.Point(194, 194);
             this.chooseFolder.Name = "chooseFolder";
             this.chooseFolder.Size = new System.Drawing.Size(75, 34);
             this.chooseFolder.TabIndex = 7;
@@ -116,11 +119,40 @@
             this.logout.UseVisualStyleBackColor = true;
             this.logout.Click += new System.EventHandler(this.logout_Click);
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(12, 110);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(76, 13);
+            this.label1.TabIndex = 14;
+            this.label1.Text = "Email to share:";
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(94, 107);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 20);
+            this.textBox1.TabIndex = 15;
+            // 
+            // share
+            // 
+            this.share.Location = new System.Drawing.Point(103, 133);
+            this.share.Name = "share";
+            this.share.Size = new System.Drawing.Size(75, 23);
+            this.share.TabIndex = 16;
+            this.share.Text = "Share";
+            this.share.UseVisualStyleBackColor = true;
+            this.share.Click += new System.EventHandler(this.share_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(572, 331);
+            this.Controls.Add(this.share);
+            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.logout);
             this.Controls.Add(this.userNameLabel);
             this.Controls.Add(this.textBox2);
@@ -146,6 +178,9 @@
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label userNameLabel;
         private System.Windows.Forms.Button logout;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Button share;
     }
 }
 

@@ -30,6 +30,7 @@ namespace DriveCrypt
         public Form1(AuthorizationForm authorizationForm)
         {
             InitializeComponent();
+            FormClosed += Form1_FormClosed;
             AllowDrop = true;
             DragEnter += new DragEventHandler(dragEnter);
             DragDrop += new DragEventHandler(dragDrop);
@@ -330,8 +331,30 @@ namespace DriveCrypt
 
         private void logout_Click(object sender, EventArgs e)
         {
-            _authorizationForm.Visible = true;
+            _authorizationForm.Show();
             Close();
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (!_authorizationForm.Visible)
+            {
+                Application.Exit();
+            }
+        }
+
+        private void share_Click(object sender, EventArgs e)
+        {
+            /*
+            inputFileName = x
+            emailToShare = y
+            send inputFileName
+            jeśli jesteśmy w posiadaniu klucza publicznego dla tego emaila,
+            to
+                var shareKeyCryptor = new UserCryptor(Base64Utils.EncodeBase64(emailToShare));
+                var keyFilename = FileCryptor.PrepareKeyForSharing(inputFileName, _userCryptor, shareKeyCryptor);
+                send keyFilename
+            */
         }
     }
 }

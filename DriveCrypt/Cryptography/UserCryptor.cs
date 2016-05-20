@@ -18,7 +18,7 @@ namespace DriveCrypt.Cryptography
         // Private key file
         private const string PrivKeyFileSuffix = @"priv.dckey";
 
-        private readonly string _userId;
+        public readonly string UserId;
 
         //  Call this function to remove the key from memory after use for security.
         [System.Runtime.InteropServices.DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
@@ -26,7 +26,7 @@ namespace DriveCrypt.Cryptography
 
         public UserCryptor(string userId)
         {
-            _userId = userId;
+            UserId = userId;
         }
 
         // Function to Generate a key pair.
@@ -47,7 +47,7 @@ namespace DriveCrypt.Cryptography
 
         public void CreateKeys(string masterPassword)
         {
-            string pathToKeyFile = GetPrivateKeyPath(_userId);
+            string pathToKeyFile = GetPrivateKeyPath(UserId);
             if (!File.Exists(pathToKeyFile))
             {
                 GenerateKeys();
@@ -66,7 +66,7 @@ namespace DriveCrypt.Cryptography
 
         public void LoadKeys(string masterPassword)
         {
-            string pathToKeyFile = GetPrivateKeyPath(_userId);
+            string pathToKeyFile = GetPrivateKeyPath(UserId);
 
             var rsaKeysXml = FileCryptor.LoadAndDecryptRsaKeys(pathToKeyFile, masterPassword);
             rsa = new RSACryptoServiceProvider();
@@ -76,7 +76,7 @@ namespace DriveCrypt.Cryptography
 
         public void SaveKeys(string masterPassword, bool force = false)
         {
-            string pathToKeyFile = GetPrivateKeyPath(_userId);
+            string pathToKeyFile = GetPrivateKeyPath(UserId);
             if (!File.Exists(pathToKeyFile) || force)
             {
                 var rsaKeysXml = rsa.ToXmlString(true);
@@ -91,8 +91,8 @@ namespace DriveCrypt.Cryptography
 
         public void ExportKeys(string directory)
         {
-            string pathToKeyFile = GetPrivateKeyPath(_userId);
-            string keyFilenameForUser = GetPrivateKeyFilename(_userId);
+            string pathToKeyFile = GetPrivateKeyPath(UserId);
+            string keyFilenameForUser = GetPrivateKeyFilename(UserId);
 
             File.Copy(pathToKeyFile, directory + Path.DirectorySeparatorChar + keyFilenameForUser);
         }

@@ -88,8 +88,13 @@ namespace DriveCrypt
 
         private void exportRsaKeys_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (string.IsNullOrWhiteSpace(_userId))
+            {
+                MessageBox.Show("Please authorize your Google account!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
             if (fbd.ShowDialog() == DialogResult.OK)
             {
                 try
@@ -107,6 +112,12 @@ namespace DriveCrypt
 
         private void importRsaKeys_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(_userId))
+            {
+                MessageBox.Show("Please authorize your Google account!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             ofd.Filter = "Drive Crypt user keys (*" + UserCryptor.PRIV_KEY_EXTENSION + ")|*" + UserCryptor.PRIV_KEY_EXTENSION;

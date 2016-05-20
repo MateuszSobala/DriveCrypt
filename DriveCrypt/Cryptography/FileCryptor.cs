@@ -44,10 +44,10 @@ namespace DriveCrypt.Cryptography
             // For additional security pin the key.
             GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
 
-            userCryptor.EncryptKey(sSecretKey, sInputFilename + FILE_KEY_EXTENSION);
+            userCryptor.EncryptKey(sSecretKey, ResolveKeyFileName(sInputFilename, userCryptor.UserId));
 
             // Encrypt the file.        
-            Encrypt(sInputFilename, sInputFilename + ".dc", sSecretKey);
+            Encrypt(sInputFilename, sInputFilename + DRIVE_CRYPT_EXTENSTION, sSecretKey);
 
             // Remove the key from memory.
             ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
@@ -61,20 +61,47 @@ namespace DriveCrypt.Cryptography
             string sSecretKey;
 
             // Get the key for the file to encrypt.
-            sSecretKey = userCryptor.DecryptKey(sInputFilename.Remove(sInputFilename.Length - 3, 3) + FILE_KEY_EXTENSION);
+            sSecretKey = userCryptor.DecryptKey(ResolveKeyFileName(sInputFilename, userCryptor.UserId));
 
             // For additional security pin the key.
             GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
 
             // Decrypt the file.
-            Decrypt(sInputFilename, sInputFilename.Remove(sInputFilename.Length - 3, 3), sSecretKey);
+            Decrypt(sInputFilename, sInputFilename.Substring(0, sInputFilename.Length - DRIVE_CRYPT_EXTENSTION.Length), sSecretKey);
 
             // Remove the key from memory.
             ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
             gch.Free();
         }
 
-        public static void Encrypt(string sInputFilename, string sOutputFilename, string sKey)
+        public static string PrepareKeyForSharing(string sInputFilename, UserCryptor decryptor, UserCryptor encryptor)
+        {
+            // Must be 64 bits, 8 bytes.
+            // Distribute this key to the user who will decrypt this file.
+            string sSecretKey;
+            
+            // Get the key for the file to encrypt.
+            sSecretKey = decryptor.DecryptKey(ResolveKeyFileName(sInputFilename, decryptor.UserId));
+
+            // For additional security pin the key.
+            GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
+
+            string keyFilename = ResolveKeyFileName(sInputFilename, encryptor.UserId);
+            encryptor.EncryptKey(sSecretKey, keyFilename);
+
+            // Remove the key from memory.
+            ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
+            gch.Free();
+
+            return keyFilename;
+        }
+
+        private static string ResolveKeyFileName(string fileToDecode, string userId)
+        {
+            return fileToDecode.Remove(fileToDecode.Length - DRIVE_CRYPT_EXTENSTION.Length + 1, DRIVE_CRYPT_EXTENSTION.Length + 1) + userId + FILE_KEY_EXTENSION;
+        }
+
+        private static void Encrypt(string sInputFilename, string sOutputFilename, string sKey)
         {
             FileStream fsInput = new FileStream(sInputFilename, FileMode.Open, FileAccess.Read);
 
@@ -93,7 +120,7 @@ namespace DriveCrypt.Cryptography
             fsInput.Close();
         }
 
-        public static void Decrypt(string sInputFilename, string sOutputFilename, string sKey)
+        private static void Decrypt(string sInputFilename, string sOutputFilename, string sKey)
         {
             //Create a file stream to read the encrypted file back.
             FileStream fsread = new FileStream(sInputFilename, FileMode.Open, FileAccess.Read);
@@ -200,7 +227,7 @@ namespace DriveCrypt.Cryptography
 
         private static readonly byte[] Salt = new byte[] { 10, 20, 30, 40, 50, 60, 70, 80 };
 
-        public static byte[] CreateKey(string password, int keyBytes = 32)
+        private static byte[] CreateKey(string password, int keyBytes = 32)
         {
             const int Iterations = 300;
             var keyGenerator = new Rfc2898DeriveBytes(password, Salt, Iterations);
