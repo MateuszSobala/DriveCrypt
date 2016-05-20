@@ -16,6 +16,8 @@ namespace DriveCrypt.Cryptography
     {
         public const string FILE_KEY_EXTENSION = ".flkey";
 
+        public const string DRIVE_CRYPT_EXTENSTION = ".dc";
+
         //  Call this function to remove the key from memory after use for security.
         [System.Runtime.InteropServices.DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
         public static extern bool ZeroMemory(IntPtr Destination, int Length);
@@ -115,7 +117,7 @@ namespace DriveCrypt.Cryptography
 
         public static void EncryptAndSaveRsaKeys(string keyParameters, string sOutputFilename, string password)
         {
-            FileStream fsEncrypted = new FileStream(sOutputFilename, FileMode.CreateNew, FileAccess.Write);
+            FileStream fsEncrypted = new FileStream(sOutputFilename, FileMode.Create, FileAccess.Write);
 
             ICryptoTransform desencrypt = CreateAesEncryptorWithPass(password);
             CryptoStream cryptostream = new CryptoStream(fsEncrypted, desencrypt, CryptoStreamMode.Write);

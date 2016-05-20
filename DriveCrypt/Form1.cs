@@ -20,62 +20,31 @@ namespace DriveCrypt
         public const string FolderName = "DriveCrypt";
 
         private readonly string[] _accessScopes = { DriveService.Scope.Drive, Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail };
-        private UserCredential _credential;
-        private UserCryptor _userCryptor;
-        private Userinfoplus _userInfo;
+        private AuthorizationForm _authorizationForm;
 
         private string _folderId;
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
         private string _directoryPath;
         private FileSystemWatcher _folderWatcher;
 
-        public Form1()
+        public Form1(AuthorizationForm authorizationForm)
         {
             InitializeComponent();
-            this.AllowDrop = true;
-            this.DragEnter += new DragEventHandler(dragEnter);
-            this.DragDrop += new DragEventHandler(dragDrop);
+            AllowDrop = true;
+            DragEnter += new DragEventHandler(dragEnter);
+            DragDrop += new DragEventHandler(dragDrop);
 
-            Authorize();
-            GetUserId();
+            _authorizationForm = authorizationForm;
             MaintainMainFolder();
             GetFiles();
-        }
-
-        private void Authorize()
-        {
-            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
-            {
-                var credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/drive-crypt-auth.json");
-
-                _credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    _accessScopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-            }
-        }
-
-        private async void GetUserId()
-        {
-            var oauthSerivce = new Oauth2Service(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _credential,
-                ApplicationName = "DriveCrypt",
-            });
-
-            _userInfo = await oauthSerivce.Userinfo.Get().ExecuteAsync();
-
-            userNameLabel.Text = "Hello " + _userInfo.Name;
+            userNameLabel.Text = _authorizationForm._userInfo.Email;
         }
 
         private void MaintainMainFolder()
         {
             var service = new DriveService(new BaseClientService.Initializer()
             {
-                HttpClientInitializer = _credential,
+                HttpClientInitializer = _authorizationForm._credential,
                 ApplicationName = "DriveCrypt",
             });
 
@@ -104,7 +73,7 @@ namespace DriveCrypt
         {
             var service = new DriveService(new BaseClientService.Initializer()
             {
-                HttpClientInitializer = _credential,
+                HttpClientInitializer = _authorizationForm._credential,
                 ApplicationName = "DriveCrypt",
             });
 
@@ -118,47 +87,54 @@ namespace DriveCrypt
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.InitialDirectory = _directoryPath;
+            ofd.Filter = "All Files(*.*) | *.*";
+            ofd.FilterIndex = 1;
+
+            if (ofd.ShowDialog() == DialogResult.OK)
             {
-                FileCryptor.EncryptFile(openFileDialog1.FileName, _userCryptor);
+                FileCryptor.EncryptFile(ofd.FileName, _authorizationForm._userCryptor);
             }
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.InitialDirectory = _directoryPath;
+            ofd.Filter = "Drive Crypt Files(*." + FileCryptor.DRIVE_CRYPT_EXTENSTION + ") | *." + FileCryptor.DRIVE_CRYPT_EXTENSTION;
+            ofd.FilterIndex = 1;
+
+            if (ofd.ShowDialog() == DialogResult.OK)
             {
-                FileCryptor.DecryptFile(openFileDialog1.FileName, _userCryptor);
+                FileCryptor.DecryptFile(ofd.FileName, _authorizationForm._userCryptor);
             }
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            var password = textBox1.Text;
-
-            _userCryptor = new UserCryptor();
-            _userCryptor.LoadKeys(_userInfo.Id, password);
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.InitialDirectory = _directoryPath;
+            ofd.Filter = "All Files(*.*) | *.*";
+            ofd.FilterIndex = 1;
+
+            if (ofd.ShowDialog() == DialogResult.OK)
             {
                 var service = new DriveService(new BaseClientService.Initializer()
                 {
-                    HttpClientInitializer = _credential,
+                    HttpClientInitializer = _authorizationForm._credential,
                     ApplicationName = "DriveCrypt",
                 });
 
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File
                 {
-                    Name = openFileDialog1.FileName,
-                    MimeType = GetMimeType(openFileDialog1.FileName),
+                    Name = ofd.FileName,
+                    MimeType = GetMimeType(ofd.FileName),
                     Parents = new List<string> { _folderId }
                 };
 
                 FilesResource.CreateMediaUpload request;
-                using (var stream = new FileStream(openFileDialog1.FileName, FileMode.Open))
+                using (var stream = new FileStream(ofd.FileName, FileMode.Open))
                 {
                     request = service.Files.Create(fileMetadata, stream, "text/plain");
                     request.Fields = "id";
@@ -265,13 +241,13 @@ namespace DriveCrypt
 
                 foreach (var item in dirs)
                 {
-                    string[] name = item.Split('\\');
+                    string[] name = item.Split(Path.DirectorySeparatorChar);
                     FolderList.Items.Add(name.Last());
                 }
 
                 foreach (var item in files)
                 {
-                    string[] name = item.Split('\\');
+                    string[] name = item.Split(Path.DirectorySeparatorChar);
                     FolderList.Items.Add(name.Last());
                 }
             }
@@ -302,10 +278,10 @@ namespace DriveCrypt
             }
             else
             {
-                string[] fileName = file.Split('\\');
+                string[] fileName = file.Split(Path.DirectorySeparatorChar);
                 try
                 {
-                    File.Copy(file, this._directoryPath + '\\' + fileName.Last());
+                    File.Copy(file, this._directoryPath + Path.DirectorySeparatorChar + fileName.Last());
                 }
                 catch
                 {
@@ -352,22 +328,10 @@ namespace DriveCrypt
             }
         }
 
-        private void exportRsaKeys_Click(object sender, EventArgs e)
+        private void logout_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
-
-            if (fbd.ShowDialog() == DialogResult.OK)
-            {
-                UserCryptor.ExportKeys(_userInfo.Id, fbd.SelectedPath);
-            }
-        }
-
-        private void importRsaKeys_Click(object sender, EventArgs e)
-        {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
-            {
-                UserCryptor.ImportKeys(openFileDialog1.FileName);
-            }
+            _authorizationForm.Visible = true;
+            Close();
         }
     }
 }

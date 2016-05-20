@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DriveCrypt.Cryptography
 {
@@ -12,12 +13,21 @@ namespace DriveCrypt.Cryptography
     {
         RSACryptoServiceProvider rsa;
 
+        public const string PRIV_KEY_EXTENSION = @".dckey";
+
         // Private key file
         private const string PrivKeyFileSuffix = @"priv.dckey";
+
+        private readonly string _userId;
 
         //  Call this function to remove the key from memory after use for security.
         [System.Runtime.InteropServices.DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
         public static extern bool ZeroMemory(ref string Destination, int Length);
+
+        public UserCryptor(string userId)
+        {
+            _userId = userId;
+        }
 
         // Function to Generate a key pair.
         public void GenerateKeys()
@@ -35,42 +45,59 @@ namespace DriveCrypt.Cryptography
             return userId + PrivKeyFileSuffix;
         }
 
-        public void LoadKeys(string userId, string masterPassword)
+        public void CreateKeys(string masterPassword)
         {
-            string pathToKeyFile = GetPrivateKeyPath(userId);
+            string pathToKeyFile = GetPrivateKeyPath(_userId);
             if (!File.Exists(pathToKeyFile))
             {
                 GenerateKeys();
-                SaveKeys(userId, masterPassword);
+                SaveKeys(masterPassword);
             }
+            else
+            {
+                throw new ArgumentException("Keys for this user already exist!");
+            }
+        }
+
+        public void ChangeMasterPassword(string oldPassword, string newPassword)
+        {
+
+        }
+
+        public void LoadKeys(string masterPassword)
+        {
+            string pathToKeyFile = GetPrivateKeyPath(_userId);
 
             var rsaKeysXml = FileCryptor.LoadAndDecryptRsaKeys(pathToKeyFile, masterPassword);
-
             rsa = new RSACryptoServiceProvider();
             rsa.FromXmlString(rsaKeysXml);
             rsa.PersistKeyInCsp = true;
         }
 
-        public void SaveKeys(string userId, string masterPassword)
+        public void SaveKeys(string masterPassword, bool force = false)
         {
-            string pathToKeyFile = GetPrivateKeyPath(userId);
-            if (!File.Exists(pathToKeyFile))
+            string pathToKeyFile = GetPrivateKeyPath(_userId);
+            if (!File.Exists(pathToKeyFile) || force)
             {
                 var rsaKeysXml = rsa.ToXmlString(true);
 
                 FileCryptor.EncryptAndSaveRsaKeys(rsaKeysXml, pathToKeyFile, masterPassword);
             }
+            else
+            {
+                throw new ArgumentException("Keys for this user already exist!");
+            }
         }
 
-        public static void ExportKeys(string userId, string directory)
+        public void ExportKeys(string directory)
         {
-            string pathToKeyFile = GetPrivateKeyPath(userId);
-            string keyFilenameForUser = GetPrivateKeyFilename(userId);
+            string pathToKeyFile = GetPrivateKeyPath(_userId);
+            string keyFilenameForUser = GetPrivateKeyFilename(_userId);
 
-            File.Copy(pathToKeyFile, directory + keyFilenameForUser);
+            File.Copy(pathToKeyFile, directory + Path.DirectorySeparatorChar + keyFilenameForUser);
         }
 
-        public static void ImportKeys(string sInputFilename)
+        public void ImportKeys(string sInputFilename)
         {
             File.Copy(sInputFilename, Directory.GetCurrentDirectory() + sInputFilename.Substring(sInputFilename.LastIndexOf(Path.DirectorySeparatorChar)));
         }
