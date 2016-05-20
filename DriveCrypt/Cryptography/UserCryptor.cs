@@ -8,28 +8,12 @@ using System.Threading.Tasks;
 
 namespace DriveCrypt.Cryptography
 {
-    class UserCryptor
+    public class UserCryptor
     {
-        // Declare CspParmeters and RsaCryptoServiceProvider
-        // objects with global scope of your Form class.
-        CspParameters cspp = new CspParameters();
         RSACryptoServiceProvider rsa;
-
-        // Path variables for source, encryption, and
-        // decryption folders. Must end with a backslash.
-        const string EncrFolder = @"c:\DriveCrypt\Encrypt\";
-        const string DecrFolder = @"c:\DriveCrypt\Decrypt\";
-        const string SrcFolder = @"c:\docs\";
-
-        // Public key file
-        const string PubKeyFile = @"c:\DriveCrypt\keys\rsaPublicKey.txt";
 
         // Private key file
         private const string PrivKeyFileSuffix = @"priv.dckey";
-
-        // Key container name for
-        // private/public key value pair.
-        const string keyName = "Key01";
 
         //  Call this function to remove the key from memory after use for security.
         [System.Runtime.InteropServices.DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
@@ -38,10 +22,7 @@ namespace DriveCrypt.Cryptography
         // Function to Generate a key pair.
         public void GenerateKeys()
         {
-            // Stores a key pair in the key container.
-            cspp.KeyContainerName = keyName;
-            rsa = new RSACryptoServiceProvider(cspp);
-            rsa.PersistKeyInCsp = true;
+            rsa = new RSACryptoServiceProvider();
         }
 
         public static string GetPrivateKeyPath(string userId)

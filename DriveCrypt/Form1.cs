@@ -19,15 +19,15 @@ namespace DriveCrypt
     {
         public const string FolderName = "DriveCrypt";
 
-        private readonly string[] _accessScopes = { DriveService.Scope.Drive };
+        private readonly string[] _accessScopes = { DriveService.Scope.Drive, Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail };
         private UserCredential _credential;
         private UserCryptor _userCryptor;
         private Userinfoplus _userInfo;
 
         private string _folderId;
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
-        private string directoryPath;
-        private FileSystemWatcher watcher;
+        private string _directoryPath;
+        private FileSystemWatcher _folderWatcher;
 
         public Form1()
         {
@@ -37,10 +37,10 @@ namespace DriveCrypt
             this.DragDrop += new DragEventHandler(dragDrop);
 
             Authorize();
+            GetUserId();
             MaintainMainFolder();
             GetFiles();
         }
-
 
         private void Authorize()
         {
@@ -67,6 +67,8 @@ namespace DriveCrypt
             });
 
             _userInfo = await oauthSerivce.Userinfo.Get().ExecuteAsync();
+
+            userNameLabel.Text = "Hello " + _userInfo.Name;
         }
 
         private void MaintainMainFolder()
@@ -118,24 +120,7 @@ namespace DriveCrypt
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                // Must be 64 bits, 8 bytes.
-                // Distribute this key to the user who will decrypt this file.
-                string sSecretKey;
-
-                // Get the key for the file to encrypt.
-                sSecretKey = FileCryptor.GenerateKey();
-
-                // For additional security pin the key.
-                GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
-
-                _userCryptor.EncryptKey(sSecretKey, @openFileDialog1.FileName + ".key");
-
-                // Encrypt the file.        
-                FileCryptor.Encrypt(@openFileDialog1.FileName, @openFileDialog1.FileName + ".dc", sSecretKey);
-
-                // Remove the key from memory.
-                FileCryptor.ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
-                gch.Free();
+                FileCryptor.EncryptFile(openFileDialog1.FileName, _userCryptor);
             }
         }
 
@@ -143,22 +128,7 @@ namespace DriveCrypt
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                // Must be 64 bits, 8 bytes.
-                // Distribute this key to the user who will decrypt this file.
-                string sSecretKey;
-
-                // Get the key for the file to encrypt.
-                sSecretKey = _userCryptor.DecryptKey(@openFileDialog1.FileName.Remove(openFileDialog1.FileName.Length - 3, 3) + ".key");
-
-                // For additional security pin the key.
-                GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
-
-                // Decrypt the file.
-                FileCryptor.Decrypt(@openFileDialog1.FileName, @openFileDialog1.FileName.Remove(openFileDialog1.FileName.Length - 3, 3), sSecretKey);
-
-                // Remove the key from memory.
-                FileCryptor.ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
-                gch.Free();
+                FileCryptor.DecryptFile(openFileDialog1.FileName, _userCryptor);
             }
         }
 
@@ -167,7 +137,7 @@ namespace DriveCrypt
             var password = textBox1.Text;
 
             _userCryptor = new UserCryptor();
-            _userCryptor.LoadKeys(_credential.UserId, password);
+            _userCryptor.LoadKeys(_userInfo.Id, password);
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -263,35 +233,35 @@ namespace DriveCrypt
 
         private void directoryWatcherCreate()
         {
-            this.watcher = new FileSystemWatcher(this.directoryPath);
+            this._folderWatcher = new FileSystemWatcher(this._directoryPath);
 
-            this.watcher.Created += new FileSystemEventHandler(onCreateEvent);
-            this.watcher.Deleted += new FileSystemEventHandler(onDeleteEvent);
+            this._folderWatcher.Created += new FileSystemEventHandler(onCreateEvent);
+            this._folderWatcher.Deleted += new FileSystemEventHandler(onDeleteEvent);
 
-            watcher.EnableRaisingEvents = true;
+            _folderWatcher.EnableRaisingEvents = true;
         }
 
-        private void choseFolder_Click(object sender, EventArgs e)
+        private void chooseFolder_Click(object sender, EventArgs e)
         {
             FolderBrowserDialog fbd = new FolderBrowserDialog();
 
             if (fbd.ShowDialog() == DialogResult.OK)
             {
-                directoryPath = fbd.SelectedPath;
-                refreshDirecotryList();
+                _directoryPath = fbd.SelectedPath;
+                refreshDirectoryList();
                 directoryWatcherCreate();
             }
         }
 
-        private void refreshDirecotryList()
+        private void refreshDirectoryList()
         {
             FolderList.Items.Clear();
-            if (!string.IsNullOrWhiteSpace(directoryPath))
+            if (!string.IsNullOrWhiteSpace(_directoryPath))
             {
-                string[] files = Directory.GetFiles(directoryPath);
-                string[] dirs = Directory.GetDirectories(directoryPath);
+                string[] files = Directory.GetFiles(_directoryPath);
+                string[] dirs = Directory.GetDirectories(_directoryPath);
 
-                textBox2.Text = directoryPath;
+                textBox2.Text = _directoryPath;
 
                 foreach (var item in dirs)
                 {
@@ -328,14 +298,14 @@ namespace DriveCrypt
             FileAttributes atributes = File.GetAttributes(file);
             if ((atributes & FileAttributes.Directory) == FileAttributes.Directory)
             {
-                DirectoryCopy(file, this.directoryPath, true);
+                DirectoryCopy(file, this._directoryPath, true);
             }
             else
             {
                 string[] fileName = file.Split('\\');
                 try
                 {
-                    File.Copy(file, this.directoryPath + '\\' + fileName.Last());
+                    File.Copy(file, this._directoryPath + '\\' + fileName.Last());
                 }
                 catch
                 {
@@ -388,7 +358,7 @@ namespace DriveCrypt
 
             if (fbd.ShowDialog() == DialogResult.OK)
             {
-                UserCryptor.ExportKeys(_credential.UserId, fbd.SelectedPath);
+                UserCryptor.ExportKeys(_userInfo.Id, fbd.SelectedPath);
             }
         }
 

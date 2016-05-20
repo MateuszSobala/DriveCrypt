@@ -36,16 +36,17 @@
             this.label1 = new System.Windows.Forms.Label();
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
-            this.choseFolder = new System.Windows.Forms.Button();
+            this.chooseFolder = new System.Windows.Forms.Button();
             this.FolderList = new System.Windows.Forms.ListBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.exportRsaKeys = new System.Windows.Forms.Button();
             this.importRsaKeys = new System.Windows.Forms.Button();
+            this.userNameLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(12, 134);
+            this.button1.Location = new System.Drawing.Point(9, 194);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 1;
@@ -59,7 +60,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(12, 163);
+            this.button2.Location = new System.Drawing.Point(9, 223);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 2;
@@ -69,7 +70,7 @@
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(98, 17);
+            this.textBox1.Location = new System.Drawing.Point(95, 39);
             this.textBox1.Name = "textBox1";
             this.textBox1.PasswordChar = '•';
             this.textBox1.Size = new System.Drawing.Size(100, 20);
@@ -78,7 +79,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 20);
+            this.label1.Location = new System.Drawing.Point(9, 42);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(80, 13);
             this.label1.TabIndex = 4;
@@ -86,7 +87,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(98, 46);
+            this.button3.Location = new System.Drawing.Point(95, 68);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(94, 23);
             this.button3.TabIndex = 5;
@@ -96,7 +97,7 @@
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(12, 227);
+            this.button4.Location = new System.Drawing.Point(9, 287);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 6;
@@ -104,36 +105,36 @@
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
-            // choseFolder
+            // chooseFolder
             // 
-            this.choseFolder.Location = new System.Drawing.Point(197, 117);
-            this.choseFolder.Name = "choseFolder";
-            this.choseFolder.Size = new System.Drawing.Size(75, 23);
-            this.choseFolder.TabIndex = 7;
-            this.choseFolder.Text = "Chose folder";
-            this.choseFolder.UseVisualStyleBackColor = true;
-            this.choseFolder.Click += new System.EventHandler(this.choseFolder_Click);
+            this.chooseFolder.Location = new System.Drawing.Point(194, 139);
+            this.chooseFolder.Name = "chooseFolder";
+            this.chooseFolder.Size = new System.Drawing.Size(75, 23);
+            this.chooseFolder.TabIndex = 7;
+            this.chooseFolder.Text = "Choose folder";
+            this.chooseFolder.UseVisualStyleBackColor = true;
+            this.chooseFolder.Click += new System.EventHandler(this.chooseFolder_Click);
             // 
             // FolderList
             // 
             this.FolderList.FormattingEnabled = true;
             this.FolderList.HorizontalScrollbar = true;
-            this.FolderList.Location = new System.Drawing.Point(278, 46);
+            this.FolderList.Location = new System.Drawing.Point(275, 68);
             this.FolderList.Name = "FolderList";
-            this.FolderList.Size = new System.Drawing.Size(192, 212);
+            this.FolderList.Size = new System.Drawing.Size(285, 238);
             this.FolderList.TabIndex = 8;
             // 
             // textBox2
             // 
             this.textBox2.Enabled = false;
-            this.textBox2.Location = new System.Drawing.Point(278, 20);
+            this.textBox2.Location = new System.Drawing.Point(275, 42);
             this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(192, 20);
+            this.textBox2.Size = new System.Drawing.Size(285, 20);
             this.textBox2.TabIndex = 9;
             // 
             // exportRsaKeys
             // 
-            this.exportRsaKeys.Location = new System.Drawing.Point(12, 86);
+            this.exportRsaKeys.Location = new System.Drawing.Point(9, 108);
             this.exportRsaKeys.Name = "exportRsaKeys";
             this.exportRsaKeys.Size = new System.Drawing.Size(75, 34);
             this.exportRsaKeys.TabIndex = 10;
@@ -143,7 +144,7 @@
             // 
             // importRsaKeys
             // 
-            this.importRsaKeys.Location = new System.Drawing.Point(98, 86);
+            this.importRsaKeys.Location = new System.Drawing.Point(95, 108);
             this.importRsaKeys.Name = "importRsaKeys";
             this.importRsaKeys.Size = new System.Drawing.Size(75, 34);
             this.importRsaKeys.TabIndex = 11;
@@ -151,16 +152,27 @@
             this.importRsaKeys.UseVisualStyleBackColor = true;
             this.importRsaKeys.Click += new System.EventHandler(this.importRsaKeys_Click);
             // 
+            // userNameLabel
+            // 
+            this.userNameLabel.AutoSize = true;
+            this.userNameLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
+            this.userNameLabel.Location = new System.Drawing.Point(9, 9);
+            this.userNameLabel.Name = "userNameLabel";
+            this.userNameLabel.Size = new System.Drawing.Size(94, 13);
+            this.userNameLabel.TabIndex = 12;
+            this.userNameLabel.Text = "userNameLabel";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(482, 262);
+            this.ClientSize = new System.Drawing.Size(572, 331);
+            this.Controls.Add(this.userNameLabel);
             this.Controls.Add(this.importRsaKeys);
             this.Controls.Add(this.exportRsaKeys);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.FolderList);
-            this.Controls.Add(this.choseFolder);
+            this.Controls.Add(this.chooseFolder);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.label1);
@@ -183,11 +195,12 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button4;
-        private System.Windows.Forms.Button choseFolder;
+        private System.Windows.Forms.Button chooseFolder;
         private System.Windows.Forms.ListBox FolderList;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Button exportRsaKeys;
         private System.Windows.Forms.Button importRsaKeys;
+        private System.Windows.Forms.Label userNameLabel;
     }
 }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ namespace DriveCrypt.Cryptography
      **/
     public sealed class FileCryptor
     {
+        public const string FILE_KEY_EXTENSION = ".flkey";
+
         //  Call this function to remove the key from memory after use for security.
         [System.Runtime.InteropServices.DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
         public static extern bool ZeroMemory(IntPtr Destination, int Length);
@@ -25,6 +28,48 @@ namespace DriveCrypt.Cryptography
 
             // Use the Automatically generated key for Encryption. 
             return Encoding.ASCII.GetString(aesCrypto.Key);
+        }
+
+        public static void EncryptFile(string sInputFilename, UserCryptor userCryptor)
+        {
+            // Must be 64 bits, 8 bytes.
+            // Distribute this key to the user who will decrypt this file.
+            string sSecretKey;
+
+            // Get the key for the file to encrypt.
+            sSecretKey = GenerateKey();
+
+            // For additional security pin the key.
+            GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
+
+            userCryptor.EncryptKey(sSecretKey, sInputFilename + FILE_KEY_EXTENSION);
+
+            // Encrypt the file.        
+            Encrypt(sInputFilename, sInputFilename + ".dc", sSecretKey);
+
+            // Remove the key from memory.
+            ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
+            gch.Free();
+        }
+
+        public static void DecryptFile(string sInputFilename, UserCryptor userCryptor)
+        {
+            // Must be 64 bits, 8 bytes.
+            // Distribute this key to the user who will decrypt this file.
+            string sSecretKey;
+
+            // Get the key for the file to encrypt.
+            sSecretKey = userCryptor.DecryptKey(sInputFilename.Remove(sInputFilename.Length - 3, 3) + FILE_KEY_EXTENSION);
+
+            // For additional security pin the key.
+            GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
+
+            // Decrypt the file.
+            Decrypt(sInputFilename, sInputFilename.Remove(sInputFilename.Length - 3, 3), sSecretKey);
+
+            // Remove the key from memory.
+            ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
+            gch.Free();
         }
 
         public static void Encrypt(string sInputFilename, string sOutputFilename, string sKey)
