@@ -103,7 +103,7 @@ namespace DriveCrypt
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.InitialDirectory = _directoryPath;
-            ofd.Filter = "Drive Crypt Files(*." + FileCryptor.DRIVE_CRYPT_EXTENSTION + ") | *." + FileCryptor.DRIVE_CRYPT_EXTENSTION;
+            ofd.Filter = "Drive Crypt Files(*" + FileCryptor.DRIVE_CRYPT_EXTENSTION + ") | *" + FileCryptor.DRIVE_CRYPT_EXTENSTION;
             ofd.FilterIndex = 1;
 
             if (ofd.ShowDialog() == DialogResult.OK)
@@ -127,10 +127,12 @@ namespace DriveCrypt
                     ApplicationName = "DriveCrypt",
                 });
 
+                var filenameWithoutPath = ofd.FileName.Remove(0, ofd.FileName.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File
                 {
-                    Name = ofd.FileName,
-                    MimeType = GetMimeType(ofd.FileName),
+                    Name = filenameWithoutPath,
+                    MimeType = GetMimeType(filenameWithoutPath),
                     Parents = new List<string> { _folderId }
                 };
 

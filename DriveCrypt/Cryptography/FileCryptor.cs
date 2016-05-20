@@ -44,7 +44,7 @@ namespace DriveCrypt.Cryptography
             // For additional security pin the key.
             GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
 
-            userCryptor.EncryptKey(sSecretKey, ResolveKeyFileName(sInputFilename, userCryptor.UserId));
+            userCryptor.EncryptKey(sSecretKey, ResolveKeyFileNameForEncode(sInputFilename, userCryptor.UserId));
 
             // Encrypt the file.        
             Encrypt(sInputFilename, sInputFilename + DRIVE_CRYPT_EXTENSTION, sSecretKey);
@@ -61,7 +61,7 @@ namespace DriveCrypt.Cryptography
             string sSecretKey;
 
             // Get the key for the file to encrypt.
-            sSecretKey = userCryptor.DecryptKey(ResolveKeyFileName(sInputFilename, userCryptor.UserId));
+            sSecretKey = userCryptor.DecryptKey(ResolveKeyFileNameForDecode(sInputFilename, userCryptor.UserId));
 
             // For additional security pin the key.
             GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
@@ -81,12 +81,12 @@ namespace DriveCrypt.Cryptography
             string sSecretKey;
             
             // Get the key for the file to encrypt.
-            sSecretKey = decryptor.DecryptKey(ResolveKeyFileName(sInputFilename, decryptor.UserId));
+            sSecretKey = decryptor.DecryptKey(ResolveKeyFileNameForDecode(sInputFilename, decryptor.UserId));
 
             // For additional security pin the key.
             GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
 
-            string keyFilename = ResolveKeyFileName(sInputFilename, encryptor.UserId);
+            string keyFilename = ResolveKeyFileNameForDecode(sInputFilename, encryptor.UserId);
             encryptor.EncryptKey(sSecretKey, keyFilename);
 
             // Remove the key from memory.
@@ -96,9 +96,14 @@ namespace DriveCrypt.Cryptography
             return keyFilename;
         }
 
-        private static string ResolveKeyFileName(string fileToDecode, string userId)
+        private static string ResolveKeyFileNameForDecode(string fileToDecode, string userId)
         {
-            return fileToDecode.Remove(fileToDecode.Length - DRIVE_CRYPT_EXTENSTION.Length + 1, DRIVE_CRYPT_EXTENSTION.Length + 1) + userId + FILE_KEY_EXTENSION;
+            return fileToDecode.Substring(0, fileToDecode.Length - DRIVE_CRYPT_EXTENSTION.Length + 1) + userId + FILE_KEY_EXTENSION;
+        }
+
+        private static string ResolveKeyFileNameForEncode(string fileToEncode, string userId)
+        {
+            return fileToEncode + "." + userId + FILE_KEY_EXTENSION;
         }
 
         private static void Encrypt(string sInputFilename, string sOutputFilename, string sKey)
