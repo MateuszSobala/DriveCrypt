@@ -4,25 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using DriveCrypt.Cryptography;
-using System.Runtime.InteropServices;
-using Google.Apis.Oauth2.v2;
-using Google.Apis.Oauth2.v2.Data;
+using DriveCrypt.OnlineStores;
 
 namespace DriveCrypt
 {
     public partial class Form1 : Form
     {
-        public const string FolderName = "DriveCrypt";
-
-        private readonly string[] _accessScopes = { DriveService.Scope.Drive, Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail };
         private AuthorizationForm _authorizationForm;
 
-        private string _folderId;
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
         private string _directoryPath;
         private FileSystemWatcher _folderWatcher;
@@ -36,50 +26,17 @@ namespace DriveCrypt
             DragDrop += new DragEventHandler(dragDrop);
 
             _authorizationForm = authorizationForm;
-            MaintainMainFolder();
+
             GetFiles();
             userNameLabel.Text = _authorizationForm._userInfo.Email;
         }
 
-        private void MaintainMainFolder()
-        {
-            var service = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _authorizationForm._credential,
-                ApplicationName = "DriveCrypt",
-            });
-
-            var fileList = service.Files.List().Execute();
-
-            if (fileList.Files.All(x => x.Name != FolderName))
-            {
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File
-                {
-                    Name = FolderName,
-                    MimeType = "application/vnd.google-apps.folder"
-                };
-
-                var request = service.Files.Create(fileMetadata);
-                request.Fields = "id";
-
-                _folderId = request.Execute().Id;
-            }
-            else
-            {
-                _folderId = fileList.Files.First(x => x.Name == FolderName).Id;
-            }
-        }
-
         private async void GetFiles()
         {
-            var service = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _authorizationForm._credential,
-                ApplicationName = "DriveCrypt",
-            });
+            var service = GDriveManager.DriveService;
 
             var request = service.Files.List();
-            request.Q = string.Format("'{0}' in parents", _folderId);
+            request.Q = string.Format("'{0}' in parents", GDriveManager.MainFolderId);
 
             var response = await request.ExecuteAsync();
 
@@ -121,29 +78,9 @@ namespace DriveCrypt
 
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                var service = new DriveService(new BaseClientService.Initializer()
-                {
-                    HttpClientInitializer = _authorizationForm._credential,
-                    ApplicationName = "DriveCrypt",
-                });
-
                 var filenameWithoutPath = ofd.FileName.Remove(0, ofd.FileName.LastIndexOf(Path.DirectorySeparatorChar) + 1);
 
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File
-                {
-                    Name = filenameWithoutPath,
-                    MimeType = GetMimeType(filenameWithoutPath),
-                    Parents = new List<string> { _folderId }
-                };
-
-                FilesResource.CreateMediaUpload request;
-                using (var stream = new FileStream(ofd.FileName, FileMode.Open))
-                {
-                    request = service.Files.Create(fileMetadata, stream, "text/plain");
-                    request.Fields = "id";
-                    request.Upload();
-                }
-                var file = request.ResponseBody;
+                var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath, GetMimeType(filenameWithoutPath));
             }
         }
 

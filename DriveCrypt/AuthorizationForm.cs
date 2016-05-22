@@ -10,6 +10,7 @@ using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using DriveCrypt.Cryptography;
 using System.Runtime.InteropServices;
+using DriveCrypt.OnlineStores;
 using Google.Apis.Oauth2.v2;
 using Google.Apis.Oauth2.v2.Data;
 using DriveCrypt.Utils;
@@ -20,8 +21,6 @@ namespace DriveCrypt
     {
         public const string FolderName = "DriveCrypt";
 
-        private readonly string[] _accessScopes = { DriveService.Scope.Drive, Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail };
-        public UserCredential _credential { get; private set; }
         public UserCryptor _userCryptor { get; private set; }
         public Userinfoplus _userInfo { get; private set; }
         public string _userId { get; private set; }
@@ -30,33 +29,12 @@ namespace DriveCrypt
         {
             InitializeComponent();
 
-            Authorize();
             GetUserId();
-        }
-
-        private void Authorize()
-        {
-            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
-            {
-                var credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/drive-crypt-auth.json");
-
-                _credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    _accessScopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-            }
         }
 
         private async void GetUserId()
         {
-            var oauthSerivce = new Oauth2Service(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _credential,
-                ApplicationName = "DriveCrypt",
-            });
+            var oauthSerivce = GDriveManager.OAuthService;
 
             _userInfo = await oauthSerivce.Userinfo.Get().ExecuteAsync();
 
