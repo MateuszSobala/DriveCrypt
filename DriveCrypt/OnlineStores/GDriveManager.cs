@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,9 +14,17 @@ namespace DriveCrypt.OnlineStores
 {
     public static class GDriveManager
     {
-        private const string FolderName = "DriveCrypt";
+        private const string MainFolderName = "DriveCrypt";
 
-        private static readonly string[] AccessScopes = { DriveService.Scope.Drive, Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail };
+        private const string MySharingFolder = "My sharing";
+
+        private const string SharedWithMeFolder = "Shared with me";
+
+        private static readonly string[] AccessScopes =
+        {
+            DriveService.Scope.Drive, DriveService.Scope.DriveMetadata,
+            Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail
+        };
 
         #region Private members
         private static UserCredential _credential;
@@ -27,6 +34,10 @@ namespace DriveCrypt.OnlineStores
         private static DriveService _driveService;
 
         private static string _mainFolderId;
+
+        private static string _sharedWithMeFolderId;
+
+        private static string _mySharingFolderId;
         #endregion
 
         #region Public access
@@ -47,8 +58,20 @@ namespace DriveCrypt.OnlineStores
 
         public static string MainFolderId
         {
-            get { return _mainFolderId ?? (_mainFolderId = GetMainFolder()); }
+            get { return _mainFolderId ?? (_mainFolderId = GetFolder(MainFolderName)); }
         }
+
+        public static string SharedWithMeFolderId
+        {
+            get { return _sharedWithMeFolderId ?? (_sharedWithMeFolderId = GetFolder(SharedWithMeFolder, new List<string> { MainFolderId })); }
+        }
+
+        public static string MySharingFolderId
+        {
+            get { return _mySharingFolderId ?? (_mySharingFolderId = GetFolder(MySharingFolder, new List<string> { MainFolderId })); }
+        }
+
+        public static string LocalFolderPath { get; set; }
         #endregion
 
         public static File UploadFile(string fileNameWithPath, string fileNameWithoutPath, string mimeType)
@@ -69,6 +92,95 @@ namespace DriveCrypt.OnlineStores
             }
 
             return request.ResponseBody;
+        }
+
+        public static void SyncFiles()
+        {
+            if (!string.IsNullOrEmpty(LocalFolderPath))
+            {
+                var service = DriveService;
+
+                var mineDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, MySharingFolder));
+                var sharedWithMeDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, SharedWithMeFolder));
+
+                //Sync files from others
+                var getSharedWithMeDataRequest = service.Files.List();
+                getSharedWithMeDataRequest.Q = string.Format("name contains '.dc' AND '{0}' in parents", SharedWithMeFolderId);
+                getSharedWithMeDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
+                var getSharedWithMeDataResponse = getSharedWithMeDataRequest.Execute();
+
+                var othersDriveFiles = getSharedWithMeDataResponse.Files.ToDictionary(x => x.Name, x => x);
+                var othersLocalFiles = sharedWithMeDir.GetFiles().ToDictionary(x => x.Name, x => x);
+
+                var newFiles = othersDriveFiles.Where(x => !othersLocalFiles.ContainsKey(x.Key)).ToList();
+                foreach (var newFile in newFiles)
+                {
+                    var request = DriveService.Files.Export(newFile.Value.Id, newFile.Value.MimeType);
+                    var downloadedStream = new MemoryStream();
+                    request.Download(downloadedStream);
+
+                    using (var fileStream = System.IO.File.Create(string.Format("{0}\\{1}\\{2}", LocalFolderPath, SharedWithMeFolder, newFile.Key)))
+                    {
+                        downloadedStream.Seek(0, SeekOrigin.Begin);
+                        downloadedStream.CopyTo(fileStream);
+                    }
+                }
+
+                var modifiedFiles =
+                    othersDriveFiles.Where(
+                        x =>
+                            othersLocalFiles.ContainsKey(x.Key) &&
+                            othersLocalFiles[x.Key].LastWriteTime < x.Value.ModifiedTime.Value).ToList();
+                foreach (var modifiedFile in modifiedFiles)
+                {
+                    othersLocalFiles[modifiedFile.Key].Delete();
+                    var request = DriveService.Files.Export(modifiedFile.Value.Id, modifiedFile.Value.MimeType);
+                    var downloadedStream = new MemoryStream();
+                    request.Download(downloadedStream);
+
+                    using (var fileStream = System.IO.File.Create(string.Format("{0}\\{1}\\{2}", LocalFolderPath, SharedWithMeFolder, modifiedFile.Key)))
+                    {
+                        downloadedStream.Seek(0, SeekOrigin.Begin);
+                        downloadedStream.CopyTo(fileStream);
+                    }
+                }
+
+                var deletedFiles = othersLocalFiles.Where(x => !othersDriveFiles.ContainsKey(x.Key)).ToList();
+                foreach (var deletedFile in deletedFiles)
+                {
+                    deletedFile.Value.Delete();
+                }
+
+                //Sync my files
+                var getMySharingDataRequest = service.Files.List();
+                getMySharingDataRequest.Q = string.Format("name contains '.dc' AND '{0}' in parents", MySharingFolderId);
+                getMySharingDataRequest.Fields = "files(modifiedTime, name)";
+                var getMySharingDataResponse = getMySharingDataRequest.Execute();
+
+                var mineFiles = mineDir.GetFiles();
+
+            }
+        }
+
+        public static void SyncNewFiles()
+        {
+            var service = DriveService;
+
+            var getDataRequest = service.Files.List();
+            getDataRequest.Q = "name contains '.dc' AND sharedWithMe";
+            getDataRequest.Fields = "files(id, parents, modifiedTime)";
+
+            var getDataResponse = getDataRequest.Execute();
+            var files = getDataResponse.Files.Where(x => x.Parents == null).ToList();
+
+            //Change to batch update
+            foreach (var file in files)
+            {
+                var updateRequest = DriveService.Files.Update(new File(), file.Id);
+                updateRequest.Fields = "id, parents";
+                updateRequest.AddParents = SharedWithMeFolderId;
+                updateRequest.Execute();
+            }
         }
 
         #region Private helpers
@@ -93,7 +205,7 @@ namespace DriveCrypt.OnlineStores
             return new Oauth2Service(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = Credential,
-                ApplicationName = "DriveCrypt",
+                ApplicationName = "DriveCrypt"
             });
         }
 
@@ -106,18 +218,19 @@ namespace DriveCrypt.OnlineStores
             });
         }
 
-        private static string GetMainFolder()
+        private static string GetFolder(string folderName, IList<string> parents = null)
         {
             var service = DriveService;
 
             var fileList = service.Files.List().Execute();
 
-            if (fileList.Files.All(x => x.Name != FolderName))
+            if (fileList.Files.All(x => x.Name != folderName))
             {
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                var fileMetadata = new File
                 {
-                    Name = FolderName,
-                    MimeType = "application/vnd.google-apps.folder"
+                    Name = folderName,
+                    MimeType = "application/vnd.google-apps.folder",
+                    Parents = parents
                 };
 
                 var request = service.Files.Create(fileMetadata);
@@ -126,7 +239,7 @@ namespace DriveCrypt.OnlineStores
                 return request.Execute().Id;
             }
 
-            return fileList.Files.First(x => x.Name == FolderName).Id;
+            return fileList.Files.First(x => x.Name == folderName).Id;
         }
         #endregion
     }

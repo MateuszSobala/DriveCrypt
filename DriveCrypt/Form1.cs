@@ -164,6 +164,8 @@ namespace DriveCrypt
             if (fbd.ShowDialog() == DialogResult.OK)
             {
                 _directoryPath = fbd.SelectedPath;
+                GDriveManager.LocalFolderPath = _directoryPath;
+
                 refreshDirectoryList();
                 directoryWatcherCreate();
             }
