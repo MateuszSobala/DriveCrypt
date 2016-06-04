@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using DriveCrypt.Cryptography;
 using DriveCrypt.OnlineStores;
 using System.Text.RegularExpressions;
+using DriveCrypt.Utils;
 
 namespace DriveCrypt
 {
@@ -32,16 +33,11 @@ namespace DriveCrypt
 
             string[] strDrives = Environment.GetLogicalDrives();
 
-            foreach (string strDrive in strDrives)
-                MessageBox.Show("Logical Drive: " + strDrive,
-                                "Logical Drives",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Information);
-
             _authorizationForm = authorizationForm;
             //readFolder();
             GetFiles();
             userNameLabel.Text = _authorizationForm._userInfo.Email;
+            GDriveManager.SyncUserKeys();
         }
 
         private async void GetFiles()
@@ -59,7 +55,7 @@ namespace DriveCrypt
         // Encode File
         private void button1_Click(object sender, EventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
+            var ofd = new OpenFileDialog();
             ofd.InitialDirectory = _directoryPath;
             ofd.Filter = "All Files(*.*) | *.*";
             ofd.FilterIndex = 1;
@@ -72,7 +68,7 @@ namespace DriveCrypt
 
         private void button2_Click(object sender, EventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
+            var ofd = new OpenFileDialog();
             ofd.InitialDirectory = _directoryPath;
             ofd.Filter = "Drive Crypt Files(*" + FileCryptor.DRIVE_CRYPT_EXTENSTION + ") | *" + FileCryptor.DRIVE_CRYPT_EXTENSTION;
             ofd.FilterIndex = 1;
@@ -85,7 +81,7 @@ namespace DriveCrypt
 
         private void button4_Click(object sender, EventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
+            var ofd = new OpenFileDialog();
             ofd.InitialDirectory = _directoryPath;
             ofd.Filter = "All Files(*.*) | *.*";
             ofd.FilterIndex = 1;
@@ -185,7 +181,7 @@ namespace DriveCrypt
 
         private void chooseFolder_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            var fbd = new FolderBrowserDialog();
 
             if (fbd.ShowDialog() == DialogResult.OK)
             {
@@ -202,7 +198,7 @@ namespace DriveCrypt
         {
             var credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
             credPath = Path.Combine(credPath, ".credentials/dirPath.txt");
-            System.IO.StreamWriter file = new System.IO.StreamWriter(credPath);
+            var file = new StreamWriter(credPath);
             file.WriteLine(path);
             file.Close();
         }
@@ -339,16 +335,88 @@ namespace DriveCrypt
 
         private void share_Click(object sender, EventArgs e)
         {
-            /*
-            inputFileName = x
-            emailToShare = y
-            send inputFileName
-            jeśli jesteśmy w posiadaniu klucza publicznego dla tego emaila,
-            to
-                var shareKeyCryptor = new UserCryptor(Base64Utils.EncodeBase64(emailToShare));
-                var keyFilename = FileCryptor.PrepareKeyForSharing(inputFileName, _userCryptor, shareKeyCryptor);
-                send keyFilename
-            */
+            var ofd = new OpenFileDialog();
+            ofd.InitialDirectory = _directoryPath;
+            ofd.Filter = "All Files(*.*) | *.*";
+            ofd.FilterIndex = 1;
+
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                var emailToShare = emailInput.Text;
+                if(!IsValidEmail(emailToShare))
+                {
+                    MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                var filenameWithoutPath = ResolveFileNameWithExtFromPath(ofd.FileName);
+
+                var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath);
+                GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+
+                var userId = Base64Utils.EncodeBase64(emailToShare);
+                var shareKeyCryptor = new UserCryptor(userId);
+
+                var keyFilePath = GetSharedWithMeFolder() + userId + UserCryptor.PUB_KEY_EXTENSION;
+                if (File.Exists(keyFilePath))
+                {
+                    shareKeyCryptor.LoadPublicKey(keyFilePath);
+                }
+                else
+                {
+                    MessageBox.Show("The requested user did not share his keys with you yet!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var keyFilename = FileCryptor.PrepareKeyForSharing(filenameWithoutPath, _authorizationForm._userCryptor, shareKeyCryptor);
+                var keyFilenameWithoutPath = ResolveFileNameWithExtFromPath(keyFilename);
+                file = GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
+                GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+            }
         }
+
+        private void sharePublicKey_Click(object sender, EventArgs e)
+        {
+            var publicKeyPath = UserCryptor.GetPublicKeyPath(_authorizationForm._userId);
+            if (!File.Exists(publicKeyPath))
+            {
+                _authorizationForm._userCryptor.SavePublicKey();
+            }
+
+            var emailToShare = emailInput.Text;
+            if (!IsValidEmail(emailToShare))
+            {
+                MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            var keyFilenameWithoutPath = ResolveFileNameWithExtFromPath(publicKeyPath);
+
+            var file = GDriveManager.UploadFile(publicKeyPath, keyFilenameWithoutPath);
+            GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+        }
+
+        #region Private helpers
+        private static bool IsValidEmail(string strIn)
+        {
+            return Regex.IsMatch(strIn, @"^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$");
+        }
+
+        private string ExcludeFolderStructureFromFilePath(string filePath)
+        {
+            int index = filePath.IndexOf(_directoryPath);
+            string cleanPath = (index < 0)
+                ? filePath
+                : filePath.Remove(index, _directoryPath.Length);
+
+            return cleanPath;
+        }
+
+        private string ResolveFileNameWithExtFromPath(string filePath)
+        {
+            return filePath.Remove(0, filePath.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+        }
+
+        private string GetSharedWithMeFolder()
+        {
+            return _directoryPath + Path.DirectorySeparatorChar + GDriveManager.SharedWithMeFolderId;
+        }
+        #endregion
     }
 }

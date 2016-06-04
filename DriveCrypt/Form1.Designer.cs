@@ -38,8 +38,9 @@
             this.userNameLabel = new System.Windows.Forms.Label();
             this.logout = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.emailInput = new System.Windows.Forms.TextBox();
             this.share = new System.Windows.Forms.Button();
+            this.sharePublicKey = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -128,16 +129,16 @@
             this.label1.TabIndex = 14;
             this.label1.Text = "Email to share:";
             // 
-            // textBox1
+            // emailInput
             // 
-            this.textBox1.Location = new System.Drawing.Point(94, 107);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 20);
-            this.textBox1.TabIndex = 15;
+            this.emailInput.Location = new System.Drawing.Point(94, 107);
+            this.emailInput.Name = "emailInput";
+            this.emailInput.Size = new System.Drawing.Size(100, 20);
+            this.emailInput.TabIndex = 15;
             // 
             // share
             // 
-            this.share.Location = new System.Drawing.Point(103, 133);
+            this.share.Location = new System.Drawing.Point(109, 133);
             this.share.Name = "share";
             this.share.Size = new System.Drawing.Size(75, 23);
             this.share.TabIndex = 16;
@@ -145,13 +146,24 @@
             this.share.UseVisualStyleBackColor = true;
             this.share.Click += new System.EventHandler(this.share_Click);
             // 
+            // sharePublicKey
+            // 
+            this.sharePublicKey.Location = new System.Drawing.Point(94, 162);
+            this.sharePublicKey.Name = "sharePublicKey";
+            this.sharePublicKey.Size = new System.Drawing.Size(102, 23);
+            this.sharePublicKey.TabIndex = 17;
+            this.sharePublicKey.Text = "Share Public Key";
+            this.sharePublicKey.UseVisualStyleBackColor = true;
+            this.sharePublicKey.Click += new System.EventHandler(this.sharePublicKey_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(572, 331);
+            this.Controls.Add(this.sharePublicKey);
             this.Controls.Add(this.share);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.emailInput);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.logout);
             this.Controls.Add(this.userNameLabel);
@@ -179,8 +191,9 @@
         private System.Windows.Forms.Label userNameLabel;
         private System.Windows.Forms.Button logout;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox emailInput;
         private System.Windows.Forms.Button share;
+        private System.Windows.Forms.Button sharePublicKey;
     }
 }
 

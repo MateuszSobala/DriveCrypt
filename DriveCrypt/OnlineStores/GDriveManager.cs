@@ -12,6 +12,7 @@ using File = Google.Apis.Drive.v3.Data.File;
 using Google.Apis.Requests;
 using Google.Apis.Drive.v3.Data;
 using System.Windows.Forms;
+using DriveCrypt.Cryptography;
 
 namespace DriveCrypt.OnlineStores
 {
@@ -210,6 +211,42 @@ namespace DriveCrypt.OnlineStores
             request.Fields = "id";
 
             batch.Queue(request, callback);
+
+            batch.ExecuteAsync();
+        }
+
+        public static void SyncUserKeys()
+        {
+            if (!string.IsNullOrEmpty(LocalFolderPath))
+            {
+                var service = DriveService;
+
+                var mineDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, MySharingFolder));
+                var sharedWithMeDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, SharedWithMeFolder));
+
+                //Sync files from others
+                var getSharedWithMeDataRequest = service.Files.List();
+                getSharedWithMeDataRequest.Q = string.Format("name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND '{0}' in parents", SharedWithMeFolderId);
+                getSharedWithMeDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
+                var getSharedWithMeDataResponse = getSharedWithMeDataRequest.Execute();
+
+                var othersDriveFiles = getSharedWithMeDataResponse.Files.ToDictionary(x => x.Name, x => x);
+                var othersLocalFiles = sharedWithMeDir.GetFiles().ToDictionary(x => x.Name, x => x);
+
+                var newFiles = othersDriveFiles.Where(x => !othersLocalFiles.ContainsKey(x.Key)).ToList();
+                foreach (var newFile in newFiles)
+                {
+                    var request = DriveService.Files.Export(newFile.Value.Id, newFile.Value.MimeType);
+                    var downloadedStream = new MemoryStream();
+                    request.Download(downloadedStream);
+
+                    using (var fileStream = System.IO.File.Create(string.Format("{0}\\{1}\\{2}", LocalFolderPath, SharedWithMeFolder, newFile.Key)))
+                    {
+                        downloadedStream.Seek(0, SeekOrigin.Begin);
+                        downloadedStream.CopyTo(fileStream);
+                    }
+                }
+            }
         }
 
         #region Private helpers

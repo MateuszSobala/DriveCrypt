@@ -44,6 +44,16 @@ namespace DriveCrypt.Cryptography
             return userId + PRIV_KEY_EXTENSION;
         }
 
+        public static string GetPublicKeyPath(string userId)
+        {
+            return Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + GetPublicKeyFilename(userId);
+        }
+
+        public static string GetPublicKeyFilename(string userId)
+        {
+            return userId + PUB_KEY_EXTENSION;
+        }
+
         public void CreateKeys(string masterPassword)
         {
             string pathToKeyFile = GetPrivateKeyPath(UserId);
@@ -108,6 +118,13 @@ namespace DriveCrypt.Cryptography
             rsa.FromXmlString(rsaKeyXml);
         }
 
+        public void LoadPublicKey()
+        {
+            string pathToKeyFile = GetPublicKeyPath(UserId);
+
+            LoadPublicKey(pathToKeyFile);
+        }
+
         public void SavePublicKey(string sOutputFilename)
         {
             FileStream fsOutput = new FileStream(sOutputFilename, FileMode.Create, FileAccess.Write);
@@ -117,6 +134,13 @@ namespace DriveCrypt.Cryptography
             fsOutput.Write(bytesToSave, 0, bytesToSave.Length);
             fsOutput.Flush();
             fsOutput.Close();
+        }
+
+        public void SavePublicKey()
+        {
+            string pathToKeyFile = GetPublicKeyPath(UserId);
+
+            SavePublicKey(pathToKeyFile);
         }
 
         public void EncryptKey(string key, string sOutputFilename)
