@@ -13,10 +13,9 @@ namespace DriveCrypt.Cryptography
     {
         RSACryptoServiceProvider rsa;
 
-        public const string PRIV_KEY_EXTENSION = @".dckey";
+        public const string PRIV_KEY_EXTENSION = @".prkey";
 
-        // Private key file
-        private const string PrivKeyFileSuffix = @"priv.dckey";
+        public const string PUB_KEY_EXTENSION = @".pbkey";
 
         public readonly string UserId;
 
@@ -42,7 +41,7 @@ namespace DriveCrypt.Cryptography
 
         public static string GetPrivateKeyFilename(string userId)
         {
-            return userId + PrivKeyFileSuffix;
+            return userId + PRIV_KEY_EXTENSION;
         }
 
         public void CreateKeys(string masterPassword)
@@ -57,11 +56,6 @@ namespace DriveCrypt.Cryptography
             {
                 throw new ArgumentException("Keys for this user already exist!");
             }
-        }
-
-        public void ChangeMasterPassword(string oldPassword, string newPassword)
-        {
-
         }
 
         public void LoadKeys(string masterPassword)

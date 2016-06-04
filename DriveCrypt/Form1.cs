@@ -80,21 +80,9 @@ namespace DriveCrypt
             {
                 var filenameWithoutPath = ofd.FileName.Remove(0, ofd.FileName.LastIndexOf(Path.DirectorySeparatorChar) + 1);
 
-                var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath, GetMimeType(filenameWithoutPath));
+                var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath);
             }
         }
-
-        // tries to figure out the mime type of the file.
-        private static string GetMimeType(string fileName)
-        {
-            string mimeType = "application/unknown";
-            string ext = System.IO.Path.GetExtension(fileName).ToLower();
-            Microsoft.Win32.RegistryKey regKey = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(ext);
-            if (regKey != null && regKey.GetValue("Content Type") != null)
-                mimeType = regKey.GetValue("Content Type").ToString();
-            return mimeType;
-        }
-        //-----------------------------------------------------------------------------------------------------------
 
         public void onChangeEvent(object source, FileSystemEventArgs e)
         {

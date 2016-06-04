@@ -9,6 +9,9 @@ using Google.Apis.Oauth2.v2;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using File = Google.Apis.Drive.v3.Data.File;
+using Google.Apis.Requests;
+using Google.Apis.Drive.v3.Data;
+using System.Windows.Forms;
 
 namespace DriveCrypt.OnlineStores
 {
@@ -74,12 +77,12 @@ namespace DriveCrypt.OnlineStores
         public static string LocalFolderPath { get; set; }
         #endregion
 
-        public static File UploadFile(string fileNameWithPath, string fileNameWithoutPath, string mimeType)
+        public static File UploadFile(string fileNameWithPath, string fileNameWithoutPath)
         {
             var fileMetadata = new File
             {
                 Name = fileNameWithoutPath,
-                MimeType = mimeType,
+                MimeType = GetMimeType(fileNameWithoutPath),
                 Parents = new List<string> { MainFolderId }
             };
 
@@ -183,6 +186,32 @@ namespace DriveCrypt.OnlineStores
             }
         }
 
+        public static void ShareFile(string fileId, string recipientEmail, RoleType roleType)
+        {
+            var batch = new BatchRequest(DriveService);
+            BatchRequest.OnResponse<Permission> callback = delegate (
+                Permission permission,
+                RequestError error,
+                int index,
+                System.Net.Http.HttpResponseMessage message)
+            {
+                if (error != null)
+                {
+                    MessageBox.Show("Could not share the file with " + recipientEmail + "!\nReason: " + error.Message, "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+            Permission userPermission = new Permission();
+            userPermission.Type = "user";
+            userPermission.Role = roleType.ToString();
+            userPermission.EmailAddress = recipientEmail;
+
+            var request = DriveService.Permissions.Create(userPermission, fileId);
+            request.Fields = "id";
+
+            batch.Queue(request, callback);
+        }
+
         #region Private helpers
         private static UserCredential Authorize()
         {
@@ -240,6 +269,17 @@ namespace DriveCrypt.OnlineStores
             }
 
             return fileList.Files.First(x => x.Name == folderName).Id;
+        }
+
+        // tries to figure out the mime type of the file.
+        private static string GetMimeType(string fileName)
+        {
+            string mimeType = "application/unknown";
+            string ext = Path.GetExtension(fileName).ToLower();
+            Microsoft.Win32.RegistryKey regKey = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(ext);
+            if (regKey != null && regKey.GetValue("Content Type") != null)
+                mimeType = regKey.GetValue("Content Type").ToString();
+            return mimeType;
         }
         #endregion
     }
