@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -22,7 +24,7 @@ namespace DriveCrypt.OnlineStores
 
         private static readonly string[] AccessScopes =
         {
-            DriveService.Scope.Drive, DriveService.Scope.DriveMetadata,
+            DriveService.Scope.Drive, DriveService.Scope.DriveMetadata, DriveService.Scope.DriveReadonly,
             Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail
         };
 
@@ -144,6 +146,7 @@ namespace DriveCrypt.OnlineStores
                         downloadedStream.CopyTo(fileStream);
                     }
                 }
+                
 
                 var deletedFiles = othersLocalFiles.Where(x => !othersDriveFiles.ContainsKey(x.Key)).ToList();
                 foreach (var deletedFile in deletedFiles)
@@ -152,14 +155,81 @@ namespace DriveCrypt.OnlineStores
                 }
 
                 //Sync my files
-                var getMySharingDataRequest = service.Files.List();
-                getMySharingDataRequest.Q = string.Format("name contains '.dc' AND '{0}' in parents", MySharingFolderId);
-                getMySharingDataRequest.Fields = "files(modifiedTime, name)";
-                var getMySharingDataResponse = getMySharingDataRequest.Execute();
-
-                var mineFiles = mineDir.GetFiles();
+                var mySharingFolders = GetMySharingFoldersStructure();
+                var mySharingFiles = GetFilesOwnedByMe(mySharingFolders);
 
             }
+        }
+
+        private static List<DriveFile> GetFilesOwnedByMe(List<DriveFile> filesStructure)
+        {
+            var request = DriveService.Files.List();
+            request.Fields = "files(modifiedTime, name, parents, id)";
+            //dodac sprawdzenie czy jest wlascicielem oraz not '{0}' in parents AND
+            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder'", SharedWithMeFolder);
+            var response = request.Execute();
+
+            var files =
+                response.Files.Select(
+                    x =>
+                        new DriveFile
+                        {
+                            Id = x.Id,
+                            Name = x.Name,
+                            ParentId = x.Parents != null ? x.Parents.First() : string.Empty
+                        })
+                    .Where(x => !string.IsNullOrEmpty(x.ParentId) && x.ParentId != SharedWithMeFolderId)
+                    .ToList();
+
+            foreach (var file in files)
+            {
+                SetParent(file, filesStructure);
+            }
+
+            return files;
+        }
+
+        private static void SetParent(DriveFile file, List<DriveFile> folders)
+        {
+            var tempFile = file;
+
+            while (true)
+            {
+                if (tempFile == null)
+                    return;
+
+                tempFile.Parent = folders.FirstOrDefault(x => x.Id == tempFile.ParentId);
+
+                tempFile = tempFile.Parent;
+            }
+        }
+
+        private static List<DriveFile> GetMySharingFoldersStructure()
+        {
+            var request = DriveService.Files.List();
+            request.Fields = "files(modifiedTime, name, parents, id)";
+            request.Q = string.Format("'{0}' in parents AND mimeType='application/vnd.google-apps.folder'", MySharingFolderId);
+            var response = request.Execute();
+
+            var driveFolders = response.Files.ToDictionary(x => x.Name, x => x);
+
+            var foldersList = new List<DriveFile>();
+            foldersList.AddRange(driveFolders.Select(x => new DriveFile { Id = x.Value.Id, Name = x.Value.Name }));
+
+            while (driveFolders.Any())
+            {
+                request.Q = string.Format("{0} AND mimeType='application/vnd.google-apps.folder'",
+                    string.Join(" or ",
+                        driveFolders.Select(mineDriveFile => string.Format("'{0}' in parents", mineDriveFile.Value.Id))
+                            .ToList()));
+
+                response = request.Execute();
+                driveFolders = response.Files.ToDictionary(x => x.Name, x => x);
+
+                foldersList.AddRange(driveFolders.Select(x => new DriveFile { Id = x.Value.Id, Name = x.Value.Name, ParentId = x.Value.Parents.First() }));
+            }
+
+            return foldersList;
         }
 
         public static void SyncNewFiles()
@@ -242,5 +312,16 @@ namespace DriveCrypt.OnlineStores
             return fileList.Files.First(x => x.Name == folderName).Id;
         }
         #endregion
+    }
+
+    public class DriveFile
+    {
+        public string Id { get; set; }
+
+        public string Name { get; set; }
+
+        public string ParentId { get; set; }
+
+        public DriveFile Parent { get; set; }
     }
 }
