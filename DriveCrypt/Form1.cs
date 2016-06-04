@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows.Forms;
 using DriveCrypt.Cryptography;
 using DriveCrypt.OnlineStores;
+using System.Text.RegularExpressions;
 
 namespace DriveCrypt
 {
@@ -15,7 +16,11 @@ namespace DriveCrypt
 
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
         private string _directoryPath;
-        private FileSystemWatcher _folderWatcher;
+        private FileSystemWatcher _folderWatcher = null;
+        private FileSystemWatcher _driveWatcher = null;
+
+        private string[] extensions = { ".dc", ".flkey" };
+            
 
         public Form1(AuthorizationForm authorizationForm)
         {
@@ -25,8 +30,16 @@ namespace DriveCrypt
             DragEnter += new DragEventHandler(dragEnter);
             DragDrop += new DragEventHandler(dragDrop);
 
-            _authorizationForm = authorizationForm;
+            string[] strDrives = Environment.GetLogicalDrives();
 
+            foreach (string strDrive in strDrives)
+                MessageBox.Show("Logical Drive: " + strDrive,
+                                "Logical Drives",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
+
+            _authorizationForm = authorizationForm;
+            //readFolder();
             GetFiles();
             userNameLabel.Text = _authorizationForm._userInfo.Email;
         }
@@ -43,6 +56,7 @@ namespace DriveCrypt
             _files = response.Files;
         }
 
+        // Encode File
         private void button1_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -86,7 +100,7 @@ namespace DriveCrypt
 
         public void onChangeEvent(object source, FileSystemEventArgs e)
         {
-            MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+            MessageBox.Show(" DC Event File: " + e.FullPath + " " + e.ChangeType);
         }
 
         public void onCreateEvent(object source, FileSystemEventArgs e)
@@ -98,21 +112,35 @@ namespace DriveCrypt
                 {
                     Thread.Sleep(100);
                 }
-                MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
             }
-            //refreshDirecotryList();
+            
+            var ext = (Path.GetExtension(e.FullPath) ?? string.Empty).ToLower();
+
+            if (!extensions.Any(ext.Equals))
+            {
+                if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
+                {
+                    FileCryptor.EncryptFile(e.FullPath, _authorizationForm._userCryptor);
+                    File.Delete(e.FullPath);
+                }
+            }
+            else
+            {
+                //MessageBox.Show("File: " + e.FullPath);
+            }
+            refreshDirectoryList();
         }
 
         public void onDeleteEvent(object source, FileSystemEventArgs e)
         {
-            MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
-            //refreshDirecotryList();
+            //MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
+            refreshDirectoryList();
         }
 
-        public void onRenameEvent(object source, RenamedEventArgs e)
+        public void onCreateDcEvent(object source, FileSystemEventArgs e)
         {
-            MessageBox.Show("File: " + e.OldFullPath + "renamed to " + e.FullPath);
-            //refreshDirecotryList();
+            MessageBox.Show("DC Event File: " + e.FullPath +" "+ e.ChangeType);
+            refreshDirectoryList();
         }
 
         private static bool IsFileLocked(string filePath)
@@ -137,12 +165,22 @@ namespace DriveCrypt
 
         private void directoryWatcherCreate()
         {
-            this._folderWatcher = new FileSystemWatcher(this._directoryPath);
+            _folderWatcher = new FileSystemWatcher(this._directoryPath);
 
-            this._folderWatcher.Created += new FileSystemEventHandler(onCreateEvent);
-            this._folderWatcher.Deleted += new FileSystemEventHandler(onDeleteEvent);
+            _folderWatcher.Created += new FileSystemEventHandler(onCreateEvent);
+            _folderWatcher.Deleted += new FileSystemEventHandler(onDeleteEvent);
 
             _folderWatcher.EnableRaisingEvents = true;
+            _folderWatcher.IncludeSubdirectories = true;
+            _folderWatcher.SynchronizingObject = this;
+
+            _driveWatcher = new FileSystemWatcher("C:\\");
+            _driveWatcher.Created += new FileSystemEventHandler(onCreateDcEvent);
+            _driveWatcher.Changed += new FileSystemEventHandler(onChangeEvent);
+            _driveWatcher.Filter = "*.dc";
+            _driveWatcher.EnableRaisingEvents = true;
+            _driveWatcher.IncludeSubdirectories = true;
+            _driveWatcher.SynchronizingObject = this;
         }
 
         private void chooseFolder_Click(object sender, EventArgs e)
@@ -156,6 +194,33 @@ namespace DriveCrypt
 
                 refreshDirectoryList();
                 directoryWatcherCreate();
+                choseFolder(fbd.SelectedPath, true);              
+            }
+        }
+
+        private void choseFolder(string path, bool isExist)
+        {
+            var credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            credPath = Path.Combine(credPath, ".credentials/dirPath.txt");
+            System.IO.StreamWriter file = new System.IO.StreamWriter(credPath);
+            file.WriteLine(path);
+            file.Close();
+        }
+
+        private bool readFolder()
+        {
+            var credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            credPath = Path.Combine(credPath, ".credentials/dirPath.txt");
+            if (File.Exists(credPath))
+            {
+                this._directoryPath = System.IO.File.ReadAllText(credPath);
+                directoryWatcherCreate();
+                refreshDirectoryList();
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
