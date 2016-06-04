@@ -187,6 +187,7 @@ namespace DriveCrypt
             {
                 _directoryPath = fbd.SelectedPath;
                 GDriveManager.LocalFolderPath = _directoryPath;
+                GDriveManager.SyncFiles();
 
                 refreshDirectoryList();
                 directoryWatcherCreate();
