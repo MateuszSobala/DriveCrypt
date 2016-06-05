@@ -170,7 +170,6 @@ namespace DriveCrypt.OnlineStores
                 //Sync my files
                 var mySharingFolders = GetMySharingFoldersStructure();
                 var mySharingFiles = GetFilesOwnedByMe(mySharingFolders).ToDictionary(x => x.Path, x => x);
-
                 var mineLocalFiles =
                     mineDir.GetFiles("*", SearchOption.AllDirectories)
                         .ToDictionary(
@@ -178,6 +177,18 @@ namespace DriveCrypt.OnlineStores
                                 x.FullName.Substring(x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) + MySharingFolder.Length,
                                     x.FullName.Length - x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) - MySharingFolder.Length), x => x);
 
+                //old files
+                var oldMineFiles = mySharingFiles.Where(x => !mineLocalFiles.ContainsKey(x.Key)).ToList();
+
+                //modified files
+                var mineModifiedFiles =
+                    mineLocalFiles.Where(
+                        x =>
+                            mySharingFiles.ContainsKey(x.Key) &&
+                            mySharingFiles[x.Key].ModifiedTime.Value < x.Value.LastWriteTime).ToList();
+
+                //new files
+                var newMineFiles = mineLocalFiles.Where(x => !mySharingFiles.ContainsKey(x.Key)).ToList();
             }
         }
 
@@ -196,6 +207,7 @@ namespace DriveCrypt.OnlineStores
                         {
                             Id = x.Id,
                             Name = x.Name,
+                            ModifiedTime = x.ModifiedByMeTime,
                             ParentId = x.Parents != null ? x.Parents.First() : string.Empty
                         })
                     .Where(x => !string.IsNullOrEmpty(x.ParentId) && x.ParentId != SharedWithMeFolderId)
@@ -436,6 +448,8 @@ namespace DriveCrypt.OnlineStores
         public string Name { get; set; }
 
         public string ParentId { get; set; }
+
+        public DateTime? ModifiedTime { get; set; }
 
         public string Path
         {
