@@ -15,6 +15,7 @@ using Google.Apis.Requests;
 using Google.Apis.Drive.v3.Data;
 using System.Windows.Forms;
 using DriveCrypt.Cryptography;
+using Org.BouncyCastle.Asn1.Crmf;
 
 namespace DriveCrypt.OnlineStores
 {
@@ -30,7 +31,7 @@ namespace DriveCrypt.OnlineStores
 
         private static readonly string[] AccessScopes =
         {
-            DriveService.Scope.Drive, DriveService.Scope.DriveMetadata, DriveService.Scope.DriveReadonly,
+            DriveService.Scope.Drive, DriveService.Scope.DriveMetadata, DriveService.Scope.DriveFile,
             Oauth2Service.Scope.UserinfoProfile, Oauth2Service.Scope.UserinfoEmail
         };
 
@@ -89,13 +90,13 @@ namespace DriveCrypt.OnlineStores
         public static string LocalFolderPath { get; set; }
         #endregion
 
-        public static File UploadFile(string fileNameWithPath, string fileNameWithoutPath)
+        public static File UploadFile(string fileNameWithPath, string fileNameWithoutPath, string parent = null)
         {
             var fileMetadata = new File
             {
                 Name = fileNameWithoutPath,
                 MimeType = GetMimeType(fileNameWithoutPath),
-                Parents = new List<string> { MainFolderId }
+                Parents = new List<string> { parent ?? MainFolderId }
             };
 
             FilesResource.CreateMediaUpload request;
@@ -107,6 +108,21 @@ namespace DriveCrypt.OnlineStores
             }
 
             return request.ResponseBody;
+        }
+
+        public static File CreateFolder(string fileName, string parentId)
+        {
+            var fileMetadata = new File
+            {
+                Name = fileName,
+                MimeType = "application/vnd.google-apps.folder",
+                Parents = new[] {parentId}
+            };
+
+            var request = DriveService.Files.Create(fileMetadata);
+            request.Fields = "id, parents, name";
+
+            return request.Execute();
         }
 
         public static void SyncFiles()
@@ -179,6 +195,11 @@ namespace DriveCrypt.OnlineStores
 
                 //old files
                 var oldMineFiles = mySharingFiles.Where(x => !mineLocalFiles.ContainsKey(x.Key)).ToList();
+                foreach (var file in oldMineFiles)
+                {
+                    var removeRequest = DriveService.Files.Delete(file.Value.Id);
+                    removeRequest.Execute();
+                }
 
                 //modified files
                 var mineModifiedFiles =
@@ -189,6 +210,29 @@ namespace DriveCrypt.OnlineStores
 
                 //new files
                 var newMineFiles = mineLocalFiles.Where(x => !mySharingFiles.ContainsKey(x.Key)).ToList();
+                foreach (var file in newMineFiles)
+                {
+                    var pathElements = file.Key.Split('\\');
+                    string parentElementId = null;
+
+                    foreach (var element in pathElements.Where(x => !string.IsNullOrEmpty(x) && !x.EndsWith(".dc")))
+                    {
+                        var elementFolder = mySharingFolders.FirstOrDefault(x => x.Name == element && x.ParentId == parentElementId);
+
+                        if (elementFolder == null)
+                        {
+                            var newFolder = CreateFolder(element, parentElementId ?? MySharingFolderId);
+                            mySharingFolders.Add(new DriveFile { Id = newFolder.Id, Name = newFolder.Name, ParentId = newFolder.Parents.First()});
+                            parentElementId = newFolder.Id;
+                        }
+                        else
+                        {
+                            parentElementId = elementFolder.Id;
+                        }
+                    }
+
+                    UploadFile(file.Value.FullName, file.Value.Name, parentElementId);
+                }
             }
         }
 
@@ -435,6 +479,11 @@ namespace DriveCrypt.OnlineStores
             if (regKey != null && regKey.GetValue("Content Type") != null)
                 mimeType = regKey.GetValue("Content Type").ToString();
             return mimeType;
+        }
+
+        private static string ResolveFileNameWithExtFromPath(string filePath)
+        {
+            return filePath.Remove(0, filePath.LastIndexOf(Path.DirectorySeparatorChar) + 1);
         }
         #endregion
     }
