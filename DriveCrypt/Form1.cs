@@ -16,6 +16,7 @@ namespace DriveCrypt
         private AuthorizationForm _authorizationForm;
 
         private IEnumerable<Google.Apis.Drive.v3.Data.File> _files;
+        private IEnumerable<Google.Apis.Drive.v3.Data.File> _sharedWithMeFiles;
         private string _directoryPath;
         private FileSystemWatcher _folderWatcher = null;
         private FileSystemWatcher _driveWatcher = null;
@@ -33,7 +34,7 @@ namespace DriveCrypt
             string[] strDrives = Environment.GetLogicalDrives();
 
             _authorizationForm = authorizationForm;
-            GetFiles();
+            
             ReadFolder();
             userNameLabel.Text = _authorizationForm._userInfo.Email;
         }
@@ -49,6 +50,14 @@ namespace DriveCrypt
             var response = await request.ExecuteAsync();
 
             _files = response.Files;
+
+            request = service.Files.List();
+            request.Q = string.Format("'{0}' in parents AND trashed = false", GDriveManager.SharedWithMeFolderId);
+            request.Fields = "files(modifiedTime, name, id, owners)";
+
+            response = await request.ExecuteAsync();
+
+            _sharedWithMeFiles = response.Files;
 
             SendPublicKeyIfNoFileKeyExists();
         }
@@ -195,18 +204,20 @@ namespace DriveCrypt
             _directoryPath = folderPath;
 
             GDriveManager.LocalFolderPath = _directoryPath;
+            GDriveManager.SyncNewFiles();
             GDriveManager.SyncFiles();
             GDriveManager.SyncNewUserKeys();
             GDriveManager.SyncUserKeys();
 
+            GetFiles();
             RefreshDirectoryList();
             DirectoryWatcherCreate();
         }
 
         private void SendPublicKeyIfNoFileKeyExists()
         {
-            var dcFiles = _files.Where(x => Path.GetExtension(x.Name) == FileCryptor.DRIVE_CRYPT_EXTENSTION).ToDictionary(x => Path.GetFileNameWithoutExtension(x.Name), x => x.Owners.First());
-            var fileKeyFiles = _files.Where(x => Path.GetExtension(x.Name) == FileCryptor.FILE_KEY_EXTENSION).Select(x => Path.GetFileNameWithoutExtension(x.Name));
+            var dcFiles = _sharedWithMeFiles.Where(x => Path.GetExtension(x.Name) == FileCryptor.DRIVE_CRYPT_EXTENSTION).ToDictionary(x => Path.GetFileNameWithoutExtension(x.Name), x => x.Owners.First());
+            var fileKeyFiles = _sharedWithMeFiles.Where(x => Path.GetExtension(x.Name) == FileCryptor.FILE_KEY_EXTENSION).Select(x => Path.GetFileNameWithoutExtension(x.Name));
 
             foreach (var dcFile in dcFiles)
             {
