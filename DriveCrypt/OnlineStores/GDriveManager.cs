@@ -359,9 +359,16 @@ namespace DriveCrypt.OnlineStores
 
             var request = DriveService.Permissions.Create(userPermission, fileId);
             request.Fields = "id";
-            request.SendNotificationEmail = Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION ? true : false;
-            request.EmailMessage = senderName + " has shared the following encoded file with you:\n" + filename + "\nwhich you can view under http://drive.google.com/file/d/" + fileId + "\nbut it can only be seen after decoding, using DriveCrypt application.";
-
+            if (Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION)
+            {
+                request.SendNotificationEmail = true;
+                request.EmailMessage = senderName + " has shared the following encoded file with you:\n" + filename + "\nwhich you can view under http://drive.google.com/file/d/" + fileId + "\nbut it can only be seen after decoding, using DriveCrypt application.";
+            }
+            else
+            {
+                request.SendNotificationEmail = false;
+            }
+                
             batch.Queue(request, callback);
 
             batch.ExecuteAsync();
