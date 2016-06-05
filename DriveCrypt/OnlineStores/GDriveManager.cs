@@ -107,7 +107,7 @@ namespace DriveCrypt.OnlineStores
             {
                 Name = fileNameWithoutPath,
                 MimeType = GetMimeType(fileNameWithoutPath),
-                Parents = new List<string> { parent ?? MainFolderId }
+                Parents = new List<string> { parent ?? MySharingFolderId }
             };
 
             FilesResource.CreateMediaUpload request;
@@ -403,7 +403,7 @@ namespace DriveCrypt.OnlineStores
                     }
                 }
 
-                UploadFile(file.Value.FullName, file.Value.Name, parentElementId ?? MySharingFolderId);
+                UploadFile(file.Value.FullName, file.Value.Name, parentElementId);
             }
         }
         #endregion
