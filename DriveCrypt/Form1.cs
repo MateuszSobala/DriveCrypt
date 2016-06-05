@@ -20,7 +20,7 @@ namespace DriveCrypt
         private FileSystemWatcher _folderWatcher = null;
         private FileSystemWatcher _driveWatcher = null;
 
-        private string[] extensions = { ".dc", ".flkey" };
+        private string[] _extensionsToBeIgnoredByWatcher = { FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, UserCryptor.PUB_KEY_EXTENSION };
             
 
         public Form1(AuthorizationForm authorizationForm)
@@ -103,32 +103,28 @@ namespace DriveCrypt
             FileAttributes atributes = File.GetAttributes(e.FullPath);
             if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
             {
-                while (IsFileLocked(e.FullPath))
+                if (IsFileLocked(e.FullPath))
                 {
-                    Thread.Sleep(100);
+                    MessageBox.Show("The requested file " + Path.GetFileName(e.FullPath) + " already exists and is used by another process!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
             }
             
             var ext = (Path.GetExtension(e.FullPath) ?? string.Empty).ToLower();
 
-            if (!extensions.Any(ext.Equals))
+            if (!_extensionsToBeIgnoredByWatcher.Any(ext.Equals))
             {
                 if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
                 {
                     FileCryptor.EncryptFile(e.FullPath, _authorizationForm._userCryptor);
-                    File.Delete(e.FullPath);
                 }
             }
-            else
-            {
-                //MessageBox.Show("File: " + e.FullPath);
-            }
+
             refreshDirectoryList();
         }
 
         public void onDeleteEvent(object source, FileSystemEventArgs e)
         {
-            //MessageBox.Show("File: " + e.FullPath + " " + e.ChangeType);
             refreshDirectoryList();
         }
 
