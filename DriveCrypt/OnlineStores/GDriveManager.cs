@@ -169,7 +169,14 @@ namespace DriveCrypt.OnlineStores
 
                 //Sync my files
                 var mySharingFolders = GetMySharingFoldersStructure();
-                var mySharingFiles = GetFilesOwnedByMe(mySharingFolders);
+                var mySharingFiles = GetFilesOwnedByMe(mySharingFolders).ToDictionary(x => x.Path, x => x);
+
+                var mineLocalFiles =
+                    mineDir.GetFiles("*", SearchOption.AllDirectories)
+                        .ToDictionary(
+                            x =>
+                                x.FullName.Substring(x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) + MySharingFolder.Length,
+                                    x.FullName.Length - x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) - MySharingFolder.Length), x => x);
 
             }
         }
@@ -179,7 +186,7 @@ namespace DriveCrypt.OnlineStores
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
             //dodac sprawdzenie czy jest wlascicielem oraz not '{0}' in parents AND
-            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder'", SharedWithMeFolder);
+            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' and trashed = false", SharedWithMeFolder);
             var response = request.Execute();
 
             var files =
@@ -427,6 +434,11 @@ namespace DriveCrypt.OnlineStores
         public string Name { get; set; }
 
         public string ParentId { get; set; }
+
+        public string Path
+        {
+            get { return Parent == null ? "\\" + Name : Parent.Path + "\\" + Name; }
+        }
 
         public DriveFile Parent { get; set; }
     }
