@@ -21,7 +21,7 @@ namespace DriveCrypt
         private FileSystemWatcher _driveWatcher = null;
 
         private string[] _extensionsToBeIgnoredByWatcher = { FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, UserCryptor.PUB_KEY_EXTENSION };
-            
+
         public Form1(AuthorizationForm authorizationForm)
         {
             InitializeComponent();
@@ -111,7 +111,7 @@ namespace DriveCrypt
                     return;
                 }
             }
-            
+
             var ext = (Path.GetExtension(e.FullPath) ?? string.Empty).ToLower();
 
             if (!_extensionsToBeIgnoredByWatcher.Any(ext.Equals))
@@ -132,7 +132,7 @@ namespace DriveCrypt
 
         public void onCreateDcEvent(object source, FileSystemEventArgs e)
         {
-            MessageBox.Show("DC Event File: " + e.FullPath +" "+ e.ChangeType);
+            MessageBox.Show("DC Event File: " + e.FullPath + " " + e.ChangeType);
             RefreshDirectoryList();
         }
 
@@ -184,7 +184,7 @@ namespace DriveCrypt
             {
                 SynchronizeFolder(fbd.SelectedPath);
 
-                SaveChosenFolder(fbd.SelectedPath, true);              
+                SaveChosenFolder(fbd.SelectedPath, true);
             }
         }
 
@@ -380,7 +380,7 @@ namespace DriveCrypt
             if (ofd.ShowDialog() == DialogResult.OK)
             {
                 var emailToShare = emailInput.Text;
-                if(!IsValidEmail(emailToShare))
+                if (!IsValidEmail(emailToShare))
                 {
                     MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
@@ -464,11 +464,7 @@ namespace DriveCrypt
 
         private void button3_Click(object sender, EventArgs e)
         {
-            GDriveManager.SyncFiles();
-            GDriveManager.SyncNewUserKeys();
-            GDriveManager.SyncUserKeys();
-
-            refreshDirectoryList();
+            SynchronizeFolder(_directoryPath);
         }
     }
 }

@@ -337,7 +337,7 @@ namespace DriveCrypt.OnlineStores
             }
         }
 
-        public static void ShareFile(string fileId, string recipientEmail, RoleType roleType)
+        public static void ShareFile(string fileId, string recipientEmail, string senderName, string filename, RoleType roleType = RoleType.reader)
         {
             var batch = new BatchRequest(DriveService);
             BatchRequest.OnResponse<Permission> callback = delegate (
@@ -359,6 +359,8 @@ namespace DriveCrypt.OnlineStores
 
             var request = DriveService.Permissions.Create(userPermission, fileId);
             request.Fields = "id";
+            request.SendNotificationEmail = Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION ? true : false;
+            request.EmailMessage = senderName + " has shared the following encoded file with you:\n" + filename + "\nwhich you can view under http://drive.google.com/file/d/" + fileId + "\nbut it can only be seen after decoding, using DriveCrypt application.";
 
             batch.Queue(request, callback);
 
