@@ -395,10 +395,8 @@ namespace DriveCrypt
                 {
                     MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                var filenameWithoutPath = Path.GetFileName(ofd.FileName);
 
-                var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath);
-                GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, filenameWithoutPath);
+                GDriveManager.ShareFile(ofd.FileName, emailToShare, _authorizationForm._userInfo.Name);
 
                 var userId = Base64Utils.EncodeBase64(emailToShare);
                 var shareKeyCryptor = new UserCryptor(userId);
@@ -416,8 +414,8 @@ namespace DriveCrypt
 
                 var keyFilename = FileCryptor.PrepareKeyForSharing(ofd.FileName, _authorizationForm._userCryptor, shareKeyCryptor);
                 var keyFilenameWithoutPath = Path.GetFileName(keyFilename);
-                file = GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
-                GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, filenameWithoutPath);
+                GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
+                GDriveManager.ShareFile(keyFilename, emailToShare, _authorizationForm._userInfo.Name);
             }
         }
 
@@ -443,7 +441,7 @@ namespace DriveCrypt
             var keyFilenameWithoutPath = Path.GetFileName(publicKeyPath);
 
             var file = GDriveManager.UploadFile(publicKeyPath, keyFilenameWithoutPath);
-            GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, keyFilenameWithoutPath);
+            GDriveManager.ShareFile(publicKeyPath, emailToShare, _authorizationForm._userInfo.Name);
         }
 
         #region Private helpers

@@ -136,38 +136,7 @@ namespace DriveCrypt.OnlineStores
             return request.Execute();
         }
 
-        public static void SyncFiles()
-        {
-            if (!string.IsNullOrEmpty(LocalFolderPath))
-            {
-                UpdateSharedWithMeFiles();
-
-                UpdateMySharingFiles();
-            }
-        }
-
-        public static void SyncNewFiles()
-        {
-            var service = DriveService;
-
-            var getDataRequest = service.Files.List();
-            getDataRequest.Q = "name contains '.dc' AND sharedWithMe AND trashed = false";
-            getDataRequest.Fields = "files(id, parents, modifiedTime)";
-
-            var getDataResponse = getDataRequest.Execute();
-            var files = getDataResponse.Files.Where(x => x.Parents == null).ToList();
-
-            //Change to batch update
-            foreach (var file in files)
-            {
-                var updateRequest = DriveService.Files.Update(new File(), file.Id);
-                updateRequest.Fields = "id, parents";
-                updateRequest.AddParents = SharedWithMeFolderId;
-                updateRequest.Execute();
-            }
-        }
-
-        public static void ShareFile(string fileId, string recipientEmail, string senderName, string filename, RoleType roleType = RoleType.reader)
+        public static void ShareFile(string filePath, string recipientEmail, string senderName, RoleType roleType = RoleType.reader)
         {
             var batch = new BatchRequest(DriveService);
             BatchRequest.OnResponse<Permission> callback = delegate (
@@ -187,21 +156,60 @@ namespace DriveCrypt.OnlineStores
             userPermission.Role = roleType.ToString();
             userPermission.EmailAddress = recipientEmail;
 
-            var request = DriveService.Permissions.Create(userPermission, fileId);
-            request.Fields = "id";
-            if (Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION)
-            {
-                request.SendNotificationEmail = true;
-                request.EmailMessage = senderName + " has shared the following encoded file with you:\n" + filename + "\nwhich you can view under http://drive.google.com/file/d/" + fileId + "\nbut it can only be seen after decoding, using DriveCrypt application.";
-            }
-            else
-            {
-                request.SendNotificationEmail = false;
-            }
-                
-            batch.Queue(request, callback);
+            var fileToShare = MySharingDriveFiles.FirstOrDefault(f => filePath.EndsWith(f.Key));
 
-            batch.ExecuteAsync();
+            if (fileToShare.Value != null)
+            {
+                var fileId = fileToShare.Value.Id;
+                var filename = fileToShare.Value.Name;
+
+                var request = DriveService.Permissions.Create(userPermission, fileId);
+                request.Fields = "id";
+                if (Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION)
+                {
+                    request.SendNotificationEmail = true;
+                    request.EmailMessage = string.Format("{0} has shared the following encoded file with you:\n{1}\nwhich you can view under http://drive.google.com/file/d/{2} \nbut it can only be readable after decoding, using DriveCrypt application.", senderName, filename, fileId);
+                }
+                else
+                {
+                    request.SendNotificationEmail = false;
+                }
+
+                batch.Queue(request, callback);
+
+                batch.ExecuteAsync();
+            }
+        }
+
+        public static void SyncFiles()
+        {
+            if (!string.IsNullOrEmpty(LocalFolderPath))
+            {
+                UpdateSharedWithMeFiles();
+
+                UpdateMySharingFiles();
+            }
+        }
+
+        public static void SyncNewFiles()
+        {
+            var service = DriveService;
+
+            var getDataRequest = service.Files.List();
+            getDataRequest.Q = string.Format("(name contains '{0}' OR name contains '{1}') AND sharedWithMe AND trashed = false", FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION);
+            getDataRequest.Fields = "files(id, parents, modifiedTime)";
+
+            var getDataResponse = getDataRequest.Execute();
+            var files = getDataResponse.Files.Where(x => x.Parents == null).ToList();
+
+            //Change to batch update
+            foreach (var file in files)
+            {
+                var updateRequest = DriveService.Files.Update(new File(), file.Id);
+                updateRequest.Fields = "id, parents";
+                updateRequest.AddParents = SharedWithMeFolderId;
+                updateRequest.Execute();
+            }
         }
 
         public static void SyncNewUserKeys()
@@ -331,9 +339,10 @@ namespace DriveCrypt.OnlineStores
 
             var driveFolders = MySharingDriveFolders;
             var driveFiles = MySharingDriveFiles;
-            var localFiles =
-                localDirectory.GetFiles("*.dc", SearchOption.AllDirectories)
-                    .ToDictionary(
+            var localDcFiles = localDirectory.GetFiles("*" + FileCryptor.DRIVE_CRYPT_EXTENSTION, SearchOption.AllDirectories);
+            var localKeyFiles = localDirectory.GetFiles("*" + FileCryptor.FILE_KEY_EXTENSION, SearchOption.AllDirectories);
+                    
+            var localFiles = localDcFiles.Concat(localKeyFiles).ToDictionary(
                         x =>
                             x.FullName.Substring(x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) + MySharingFolder.Length,
                                 x.FullName.Length - x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) - MySharingFolder.Length), x => x);
@@ -377,7 +386,8 @@ namespace DriveCrypt.OnlineStores
                 var pathElements = file.Key.Split('\\');
                 string parentElementId = null;
 
-                foreach (var element in pathElements.Where(x => !string.IsNullOrEmpty(x) && !x.EndsWith(".dc")))
+                foreach (var element in pathElements.Where(x => !string.IsNullOrEmpty(x)
+                    && !(x.EndsWith(FileCryptor.DRIVE_CRYPT_EXTENSTION) || x.EndsWith(FileCryptor.FILE_KEY_EXTENSION) || x.EndsWith(UserCryptor.PUB_KEY_EXTENSION))))
                 {
                     var elementFolder = driveFolders.FirstOrDefault(x => x.Name == element && x.ParentId == parentElementId);
 
@@ -498,10 +508,12 @@ namespace DriveCrypt.OnlineStores
         {
             var resultDictionary = new ConcurrentDictionary<string, DriveFile>();
 
+            var userInfo = OAuthService.Userinfo.Get().Execute();
+
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
-            //dodac sprawdzenie czy jest wlascicielem oraz not '{0}' in parents AND
-            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' AND trashed = false AND not '{0}' in parents", MainFolderId);
+            request.Q = string.Format("(name contains '{0}' OR name contains '{1}') AND '{2}' in owners AND mimeType!='application/vnd.google-apps.folder' AND trashed = false AND not '{3}' in parents", FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, userInfo.Email, MainFolderId);
+
             var response = request.Execute();
 
             var files =
