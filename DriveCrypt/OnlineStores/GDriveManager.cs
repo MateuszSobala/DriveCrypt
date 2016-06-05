@@ -22,9 +22,11 @@ namespace DriveCrypt.OnlineStores
     {
         private const string MainFolderName = "DriveCrypt";
 
-        private const string MySharingFolder = "My sharing";
+        public const string MySharingFolder = "My sharing";
 
-        private const string SharedWithMeFolder = "Shared with me";
+        public const string SharedWithMeFolder = "Shared with me";
+
+        public const string UserKeysFolder = "User keys";
 
         private static readonly string[] AccessScopes =
         {
@@ -44,6 +46,8 @@ namespace DriveCrypt.OnlineStores
         private static string _sharedWithMeFolderId;
 
         private static string _mySharingFolderId;
+
+        private static string _userKeysFolderId;
         #endregion
 
         #region Public access
@@ -75,6 +79,11 @@ namespace DriveCrypt.OnlineStores
         public static string MySharingFolderId
         {
             get { return _mySharingFolderId ?? (_mySharingFolderId = GetFolder(MySharingFolder, new List<string> { MainFolderId })); }
+        }
+
+        public static string UserKeysFolderId
+        {
+            get { return _userKeysFolderId ?? (_userKeysFolderId = GetFolder(UserKeysFolder, new List<string> { MainFolderId })); }
         }
 
         public static string LocalFolderPath { get; set; }
@@ -121,7 +130,7 @@ namespace DriveCrypt.OnlineStores
                 var newFiles = othersDriveFiles.Where(x => !othersLocalFiles.ContainsKey(x.Key)).ToList();
                 foreach (var newFile in newFiles)
                 {
-                    var request = DriveService.Files.Export(newFile.Value.Id, newFile.Value.MimeType);
+                    var request = DriveService.Files.Get(newFile.Value.Id);
                     var downloadedStream = new MemoryStream();
                     request.Download(downloadedStream);
 
@@ -140,7 +149,7 @@ namespace DriveCrypt.OnlineStores
                 foreach (var modifiedFile in modifiedFiles)
                 {
                     othersLocalFiles[modifiedFile.Key].Delete();
-                    var request = DriveService.Files.Export(modifiedFile.Value.Id, modifiedFile.Value.MimeType);
+                    var request = DriveService.Files.Get(modifiedFile.Value.Id);
                     var downloadedStream = new MemoryStream();
                     request.Download(downloadedStream);
 
@@ -304,32 +313,52 @@ namespace DriveCrypt.OnlineStores
             batch.ExecuteAsync();
         }
 
+        public static void SyncNewUserKeys()
+        {
+            var service = DriveService;
+
+            var getDataRequest = service.Files.List();
+            getDataRequest.Q = "name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND sharedWithMe";
+            getDataRequest.Fields = "files(id, parents, modifiedTime)";
+
+            var getDataResponse = getDataRequest.Execute();
+            var files = getDataResponse.Files.Where(x => x.Parents == null).ToList();
+
+            //Change to batch update
+            foreach (var file in files)
+            {
+                var updateRequest = DriveService.Files.Update(new File(), file.Id);
+                updateRequest.Fields = "id, parents";
+                updateRequest.AddParents = UserKeysFolderId;
+                updateRequest.Execute();
+            }
+        }
+
         public static void SyncUserKeys()
         {
             if (!string.IsNullOrEmpty(LocalFolderPath))
             {
                 var service = DriveService;
 
-                var mineDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, MySharingFolder));
-                var sharedWithMeDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, SharedWithMeFolder));
+                var userKeysDir = new DirectoryInfo(string.Format("{0}\\{1}", LocalFolderPath, UserKeysFolder));
 
                 //Sync files from others
-                var getSharedWithMeDataRequest = service.Files.List();
-                getSharedWithMeDataRequest.Q = string.Format("name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND '{0}' in parents", SharedWithMeFolderId);
-                getSharedWithMeDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
-                var getSharedWithMeDataResponse = getSharedWithMeDataRequest.Execute();
+                var getUserKeysDataRequest = service.Files.List();
+                getUserKeysDataRequest.Q = string.Format("name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND '{0}' in parents", UserKeysFolderId);
+                getUserKeysDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
+                var getUserKeysDataResponse = getUserKeysDataRequest.Execute();
 
-                var othersDriveFiles = getSharedWithMeDataResponse.Files.ToDictionary(x => x.Name, x => x);
-                var othersLocalFiles = sharedWithMeDir.GetFiles().ToDictionary(x => x.Name, x => x);
+                var othersDriveFiles = getUserKeysDataResponse.Files.ToDictionary(x => x.Name, x => x);
+                var othersLocalFiles = userKeysDir.GetFiles().ToDictionary(x => x.Name, x => x);
 
                 var newFiles = othersDriveFiles.Where(x => !othersLocalFiles.ContainsKey(x.Key)).ToList();
                 foreach (var newFile in newFiles)
                 {
-                    var request = DriveService.Files.Export(newFile.Value.Id, newFile.Value.MimeType);
                     var downloadedStream = new MemoryStream();
+                    var request = DriveService.Files.Get(newFile.Value.Id);
                     request.Download(downloadedStream);
 
-                    using (var fileStream = System.IO.File.Create(string.Format("{0}\\{1}\\{2}", LocalFolderPath, SharedWithMeFolder, newFile.Key)))
+                    using (var fileStream = System.IO.File.Create(string.Format("{0}\\{1}\\{2}", LocalFolderPath, UserKeysFolder, newFile.Key)))
                     {
                         downloadedStream.Seek(0, SeekOrigin.Begin);
                         downloadedStream.CopyTo(fileStream);

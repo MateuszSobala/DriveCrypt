@@ -37,7 +37,6 @@ namespace DriveCrypt
             //readFolder();
             GetFiles();
             userNameLabel.Text = _authorizationForm._userInfo.Email;
-            GDriveManager.SyncUserKeys();
         }
 
         private async void GetFiles()
@@ -185,13 +184,33 @@ namespace DriveCrypt
 
             if (fbd.ShowDialog() == DialogResult.OK)
             {
+                PrepareFolderStructure(fbd.SelectedPath);
+
                 _directoryPath = fbd.SelectedPath;
                 GDriveManager.LocalFolderPath = _directoryPath;
                 GDriveManager.SyncFiles();
+                GDriveManager.SyncNewUserKeys();
+                GDriveManager.SyncUserKeys();
 
                 refreshDirectoryList();
                 directoryWatcherCreate();
                 choseFolder(fbd.SelectedPath, true);              
+            }
+        }
+
+        private void PrepareFolderStructure(string directory)
+        {
+            if (!Directory.EnumerateDirectories(directory, GDriveManager.SharedWithMeFolder).Any())
+            {
+                Directory.CreateDirectory(directory + Path.DirectorySeparatorChar + GDriveManager.SharedWithMeFolder);
+            }
+            if (!Directory.EnumerateDirectories(directory, GDriveManager.MySharingFolder).Any())
+            {
+                Directory.CreateDirectory(directory + Path.DirectorySeparatorChar + GDriveManager.MySharingFolder);
+            }
+            if (!Directory.EnumerateDirectories(directory, GDriveManager.UserKeysFolder).Any())
+            {
+                Directory.CreateDirectory(directory + Path.DirectorySeparatorChar + GDriveManager.UserKeysFolder);
             }
         }
 
@@ -356,7 +375,7 @@ namespace DriveCrypt
                 var userId = Base64Utils.EncodeBase64(emailToShare);
                 var shareKeyCryptor = new UserCryptor(userId);
 
-                var keyFilePath = GetSharedWithMeFolder() + userId + UserCryptor.PUB_KEY_EXTENSION;
+                var keyFilePath = GetUserKeysFolder() + Path.DirectorySeparatorChar + userId + UserCryptor.PUB_KEY_EXTENSION;
                 if (File.Exists(keyFilePath))
                 {
                     shareKeyCryptor.LoadPublicKey(keyFilePath);
@@ -367,7 +386,7 @@ namespace DriveCrypt
                     return;
                 }
 
-                var keyFilename = FileCryptor.PrepareKeyForSharing(filenameWithoutPath, _authorizationForm._userCryptor, shareKeyCryptor);
+                var keyFilename = FileCryptor.PrepareKeyForSharing(ofd.FileName, _authorizationForm._userCryptor, shareKeyCryptor);
                 var keyFilenameWithoutPath = ResolveFileNameWithExtFromPath(keyFilename);
                 file = GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
                 GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
@@ -417,6 +436,11 @@ namespace DriveCrypt
         private string GetSharedWithMeFolder()
         {
             return _directoryPath + Path.DirectorySeparatorChar + GDriveManager.SharedWithMeFolderId;
+        }
+
+        private string GetUserKeysFolder()
+        {
+            return _directoryPath + Path.DirectorySeparatorChar + GDriveManager.UserKeysFolder;
         }
         #endregion
     }
