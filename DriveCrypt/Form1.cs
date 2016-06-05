@@ -367,10 +367,10 @@ namespace DriveCrypt
                 {
                     MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                var filenameWithoutPath = ResolveFileNameWithExtFromPath(ofd.FileName);
+                var filenameWithoutPath = Path.GetFileName(ofd.FileName);
 
                 var file = GDriveManager.UploadFile(ofd.FileName, filenameWithoutPath);
-                GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+                GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, filenameWithoutPath);
 
                 var userId = Base64Utils.EncodeBase64(emailToShare);
                 var shareKeyCryptor = new UserCryptor(userId);
@@ -387,9 +387,9 @@ namespace DriveCrypt
                 }
 
                 var keyFilename = FileCryptor.PrepareKeyForSharing(ofd.FileName, _authorizationForm._userCryptor, shareKeyCryptor);
-                var keyFilenameWithoutPath = ResolveFileNameWithExtFromPath(keyFilename);
+                var keyFilenameWithoutPath = Path.GetFileName(keyFilename);
                 file = GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
-                GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+                GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, filenameWithoutPath);
             }
         }
 
@@ -406,10 +406,10 @@ namespace DriveCrypt
             {
                 MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            var keyFilenameWithoutPath = ResolveFileNameWithExtFromPath(publicKeyPath);
+            var keyFilenameWithoutPath = Path.GetFileName(publicKeyPath);
 
             var file = GDriveManager.UploadFile(publicKeyPath, keyFilenameWithoutPath);
-            GDriveManager.ShareFile(file.Id, emailToShare, RoleType.reader);
+            GDriveManager.ShareFile(file.Id, emailToShare, _authorizationForm._userInfo.Name, keyFilenameWithoutPath);
         }
 
         #region Private helpers
@@ -426,11 +426,6 @@ namespace DriveCrypt
                 : filePath.Remove(index, _directoryPath.Length);
 
             return cleanPath;
-        }
-
-        private string ResolveFileNameWithExtFromPath(string filePath)
-        {
-            return filePath.Remove(0, filePath.LastIndexOf(Path.DirectorySeparatorChar) + 1);
         }
 
         private string GetSharedWithMeFolder()
