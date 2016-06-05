@@ -187,7 +187,7 @@ namespace DriveCrypt.OnlineStores
                 var mySharingFolders = GetMySharingFoldersStructure();
                 var mySharingFiles = GetFilesOwnedByMe(mySharingFolders).GroupBy(x => x.Name).Select(group => group.First()).ToDictionary(x => x.Path, x => x);
                 var mineLocalFiles =
-                    mineDir.GetFiles("*", SearchOption.AllDirectories)
+                    mineDir.GetFiles("*.dc", SearchOption.AllDirectories)
                         .ToDictionary(
                             x =>
                                 x.FullName.Substring(x.FullName.IndexOf(MySharingFolder, StringComparison.Ordinal) + MySharingFolder.Length,
@@ -239,7 +239,7 @@ namespace DriveCrypt.OnlineStores
                         }
                     }
 
-                    UploadFile(file.Value.FullName, file.Value.Name, parentElementId);
+                    UploadFile(file.Value.FullName, file.Value.Name, parentElementId ?? MySharingFolderId);
                 }
             }
         }
@@ -249,7 +249,7 @@ namespace DriveCrypt.OnlineStores
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
             //dodac sprawdzenie czy jest wlascicielem oraz not '{0}' in parents AND
-            request.Q = "name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' AND trashed = false";
+            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' AND trashed = false AND not '{0}' in parents", MainFolderId);
             var response = request.Execute();
 
             var files =
@@ -292,7 +292,7 @@ namespace DriveCrypt.OnlineStores
         {
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
-            request.Q = string.Format("'{0}' in parents AND mimeType='application/vnd.google-apps.folder'", MySharingFolderId);
+            request.Q = string.Format("'{0}' in parents AND mimeType='application/vnd.google-apps.folder' AND trashed = false", MySharingFolderId);
             var response = request.Execute();
 
             var driveFolders = response.Files.ToDictionary(x => x.Name, x => x);
@@ -302,7 +302,7 @@ namespace DriveCrypt.OnlineStores
 
             while (driveFolders.Any())
             {
-                request.Q = string.Format("({0}) AND mimeType='application/vnd.google-apps.folder'",
+                request.Q = string.Format("({0}) AND mimeType='application/vnd.google-apps.folder' AND trashed = false",
                     string.Join(" or ",
                         driveFolders.Select(mineDriveFile => string.Format("'{0}' in parents", mineDriveFile.Value.Id))
                             .ToList()));
