@@ -136,8 +136,8 @@ namespace DriveCrypt.OnlineStores
 
                 //Sync files from others
                 var getSharedWithMeDataRequest = service.Files.List();
-                getSharedWithMeDataRequest.Q = string.Format("name contains '" + FileCryptor.DRIVE_CRYPT_EXTENSTION + "' OR name contains '" + FileCryptor.FILE_KEY_EXTENSION + "' AND '{0}' in parents AND trashed = false", SharedWithMeFolderId);
-                getSharedWithMeDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
+                getSharedWithMeDataRequest.Q = string.Format("(name contains '{0}' OR name contains '{1}') AND '{2}' in parents AND trashed = false", FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, SharedWithMeFolderId);
+                getSharedWithMeDataRequest.Fields = "files(modifiedTime, name, id, mimeType, parents)";
                 var getSharedWithMeDataResponse = getSharedWithMeDataRequest.Execute();
 
                 var othersDriveFiles = getSharedWithMeDataResponse.Files.GroupBy(x => x.Name).Select(group => group.First()).ToDictionary(x => x.Name, x => x);
@@ -249,7 +249,7 @@ namespace DriveCrypt.OnlineStores
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
             //dodac sprawdzenie czy jest wlascicielem oraz not '{0}' in parents AND
-            request.Q = string.Format("name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' AND trashed = false", SharedWithMeFolder);
+            request.Q = "name contains '.dc' AND mimeType!='application/vnd.google-apps.folder' AND trashed = false";
             var response = request.Execute();
 
             var files =
@@ -302,7 +302,7 @@ namespace DriveCrypt.OnlineStores
 
             while (driveFolders.Any())
             {
-                request.Q = string.Format("{0} AND mimeType='application/vnd.google-apps.folder'",
+                request.Q = string.Format("({0}) AND mimeType='application/vnd.google-apps.folder'",
                     string.Join(" or ",
                         driveFolders.Select(mineDriveFile => string.Format("'{0}' in parents", mineDriveFile.Value.Id))
                             .ToList()));
@@ -372,7 +372,7 @@ namespace DriveCrypt.OnlineStores
             var service = DriveService;
 
             var getDataRequest = service.Files.List();
-            getDataRequest.Q = "name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND sharedWithMe AND trashed = false";
+            getDataRequest.Q = string.Format("name contains '{0}' AND sharedWithMe AND trashed = false", UserCryptor.PUB_KEY_EXTENSION);
             getDataRequest.Fields = "files(id, parents, modifiedTime)";
 
             var getDataResponse = getDataRequest.Execute();
@@ -398,7 +398,7 @@ namespace DriveCrypt.OnlineStores
 
                 //Sync files from others
                 var getUserKeysDataRequest = service.Files.List();
-                getUserKeysDataRequest.Q = string.Format("name contains '" + UserCryptor.PUB_KEY_EXTENSION + "' AND '{0}' in parents AND trashed = false", UserKeysFolderId);
+                getUserKeysDataRequest.Q = string.Format("name contains '{0}' AND '{1}' in parents AND trashed = false", UserCryptor.PUB_KEY_EXTENSION, UserKeysFolderId);
                 getUserKeysDataRequest.Fields = "files(modifiedTime, name, id, mimeType)";
                 var getUserKeysDataResponse = getUserKeysDataRequest.Execute();
 
