@@ -112,10 +112,11 @@ namespace DriveCrypt.Cryptography
             var keyParametersUnicode = new byte[fsread.Length];
             fsread.Read(keyParametersUnicode, 0, keyParametersUnicode.Length);
 
-            var rsaKeyXml = Encoding.Unicode.GetChars(keyParametersUnicode).ToString();
+            var rsaKeyXml = Encoding.Unicode.GetChars(keyParametersUnicode);
+            var rsaKeyXmlStringified = new string(rsaKeyXml);
 
             rsa = new RSACryptoServiceProvider();
-            rsa.FromXmlString(rsaKeyXml);
+            rsa.FromXmlString(rsaKeyXmlStringified);
         }
 
         public void LoadPublicKey()
