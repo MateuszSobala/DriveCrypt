@@ -207,6 +207,14 @@ namespace DriveCrypt.OnlineStores
                         x =>
                             mySharingFiles.ContainsKey(x.Key) &&
                             mySharingFiles[x.Key].ModifiedTime.Value < x.Value.LastWriteTime).ToList();
+                foreach (var file in mineModifiedFiles)
+                {
+                    using (var stream = new FileStream(file.Value.FullName, FileMode.Open))
+                    {
+                        var updateRequest = DriveService.Files.Update(new File(), mySharingFiles[file.Key].Id, stream, GetMimeType(file.Value.FullName));
+                        updateRequest.Upload();
+                    }
+                }
 
                 //new files
                 var newMineFiles = mineLocalFiles.Where(x => !mySharingFiles.ContainsKey(x.Key)).ToList();
@@ -251,7 +259,7 @@ namespace DriveCrypt.OnlineStores
                         {
                             Id = x.Id,
                             Name = x.Name,
-                            ModifiedTime = x.ModifiedByMeTime,
+                            ModifiedTime = x.ModifiedTime,
                             ParentId = x.Parents != null ? x.Parents.First() : string.Empty
                         })
                     .Where(x => !string.IsNullOrEmpty(x.ParentId) && x.ParentId != SharedWithMeFolderId)
@@ -329,7 +337,7 @@ namespace DriveCrypt.OnlineStores
             }
         }
 
-        public static void ShareFile(string fileId, string recipientEmail, string senderName, string filename, RoleType roleType = RoleType.reader)
+        public static void ShareFile(string fileId, string recipientEmail, RoleType roleType)
         {
             var batch = new BatchRequest(DriveService);
             BatchRequest.OnResponse<Permission> callback = delegate (
@@ -351,8 +359,6 @@ namespace DriveCrypt.OnlineStores
 
             var request = DriveService.Permissions.Create(userPermission, fileId);
             request.Fields = "id";
-            request.SendNotificationEmail = Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION ? true : false;
-            request.EmailMessage = senderName + " has shared the following encoded file with you:\n" + filename + "\nwhich you can view under http://drive.google.com/file/d/" + fileId + "\nbut it can only be seen after decoding, using DriveCrypt application.";
 
             batch.Queue(request, callback);
 

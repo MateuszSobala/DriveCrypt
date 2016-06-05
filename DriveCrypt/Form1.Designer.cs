@@ -41,6 +41,7 @@
             this.emailInput = new System.Windows.Forms.TextBox();
             this.share = new System.Windows.Forms.Button();
             this.sharePublicKey = new System.Windows.Forms.Button();
+            this.button3 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -156,11 +157,22 @@
             this.sharePublicKey.UseVisualStyleBackColor = true;
             this.sharePublicKey.Click += new System.EventHandler(this.sharePublicKey_Click);
             // 
+            // button3
+            // 
+            this.button3.Location = new System.Drawing.Point(194, 234);
+            this.button3.Name = "button3";
+            this.button3.Size = new System.Drawing.Size(75, 34);
+            this.button3.TabIndex = 18;
+            this.button3.Text = "Sync folder";
+            this.button3.UseVisualStyleBackColor = true;
+            this.button3.Click += new System.EventHandler(this.button3_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(572, 331);
+            this.Controls.Add(this.button3);
             this.Controls.Add(this.sharePublicKey);
             this.Controls.Add(this.share);
             this.Controls.Add(this.emailInput);
@@ -194,6 +206,7 @@
         private System.Windows.Forms.TextBox emailInput;
         private System.Windows.Forms.Button share;
         private System.Windows.Forms.Button sharePublicKey;
+        private System.Windows.Forms.Button button3;
     }
 }
 
