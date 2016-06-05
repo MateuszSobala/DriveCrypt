@@ -434,5 +434,14 @@ namespace DriveCrypt
             return _directoryPath + Path.DirectorySeparatorChar + GDriveManager.UserKeysFolder;
         }
         #endregion
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            GDriveManager.SyncFiles();
+            GDriveManager.SyncNewUserKeys();
+            GDriveManager.SyncUserKeys();
+
+            refreshDirectoryList();
+        }
     }
 }
