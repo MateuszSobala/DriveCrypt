@@ -28,12 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.chooseFolder = new System.Windows.Forms.Button();
-            this.FolderList = new System.Windows.Forms.ListBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.userNameLabel = new System.Windows.Forms.Label();
             this.logout = new System.Windows.Forms.Button();
@@ -42,6 +42,11 @@
             this.share = new System.Windows.Forms.Button();
             this.sharePublicKey = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
+            this.FolderList = new System.Windows.Forms.TreeView();
+            this.FolderListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.encodeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.shareToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.FolderListMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // button1
@@ -83,15 +88,6 @@
             this.chooseFolder.Text = "Choose folder";
             this.chooseFolder.UseVisualStyleBackColor = true;
             this.chooseFolder.Click += new System.EventHandler(this.chooseFolder_Click);
-            // 
-            // FolderList
-            // 
-            this.FolderList.FormattingEnabled = true;
-            this.FolderList.HorizontalScrollbar = true;
-            this.FolderList.Location = new System.Drawing.Point(275, 68);
-            this.FolderList.Name = "FolderList";
-            this.FolderList.Size = new System.Drawing.Size(285, 238);
-            this.FolderList.TabIndex = 8;
             // 
             // textBox2
             // 
@@ -167,11 +163,41 @@
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
+            // FolderList
+            // 
+            this.FolderList.Location = new System.Drawing.Point(275, 68);
+            this.FolderList.Name = "FolderList";
+            this.FolderList.Size = new System.Drawing.Size(285, 242);
+            this.FolderList.TabIndex = 19;
+            // 
+            // FolderListMenu
+            // 
+            this.FolderListMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.encodeToolStripMenuItem,
+            this.shareToolStripMenuItem});
+            this.FolderListMenu.Name = "FolderListMenu";
+            this.FolderListMenu.Size = new System.Drawing.Size(153, 70);
+            // 
+            // encodeToolStripMenuItem
+            // 
+            this.encodeToolStripMenuItem.Name = "encodeToolStripMenuItem";
+            this.encodeToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.encodeToolStripMenuItem.Text = "Encode";
+            this.encodeToolStripMenuItem.Click += new System.EventHandler(this.encodeToolStripMenuItem_Click);
+            // 
+            // shareToolStripMenuItem
+            // 
+            this.shareToolStripMenuItem.Name = "shareToolStripMenuItem";
+            this.shareToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.shareToolStripMenuItem.Text = "Share";
+            this.shareToolStripMenuItem.Click += new System.EventHandler(this.shareToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(572, 331);
+            this.Controls.Add(this.FolderList);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.sharePublicKey);
             this.Controls.Add(this.share);
@@ -180,7 +206,6 @@
             this.Controls.Add(this.logout);
             this.Controls.Add(this.userNameLabel);
             this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.FolderList);
             this.Controls.Add(this.chooseFolder);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button2);
@@ -188,6 +213,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "Drive Crypt";
+            this.FolderListMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -198,7 +224,6 @@
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button chooseFolder;
-        private System.Windows.Forms.ListBox FolderList;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label userNameLabel;
         private System.Windows.Forms.Button logout;
@@ -207,6 +232,10 @@
         private System.Windows.Forms.Button share;
         private System.Windows.Forms.Button sharePublicKey;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.TreeView FolderList;
+        private System.Windows.Forms.ContextMenuStrip FolderListMenu;
+        private System.Windows.Forms.ToolStripMenuItem encodeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem shareToolStripMenuItem;
     }
 }
 

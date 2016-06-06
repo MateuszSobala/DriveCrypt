@@ -54,7 +54,7 @@ namespace DriveCrypt.Cryptography
             gch.Free();
         }
 
-        public static void DecryptFile(string sInputFilename, UserCryptor userCryptor)
+        public static string DecryptFile(string sInputFilename, UserCryptor userCryptor)
         {
             // Must be 64 bits, 8 bytes.
             // Distribute this key to the user who will decrypt this file.
@@ -72,6 +72,7 @@ namespace DriveCrypt.Cryptography
             // Remove the key from memory.
             ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
             gch.Free();
+            return sInputFilename.Substring(0, sInputFilename.Length - DRIVE_CRYPT_EXTENSTION.Length);
         }
 
         public static string PrepareKeyForSharing(string sInputFilename, UserCryptor decryptor, UserCryptor encryptor)
