@@ -45,11 +45,14 @@
             this.FolderList = new System.Windows.Forms.TreeView();
             this.FileListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.shareToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.decodeToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.DCListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.encodeToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.decodeToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.SharedWithMeMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.decodeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FileListMenu.SuspendLayout();
             this.DCListMenu.SuspendLayout();
+            this.SharedWithMeMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // button1
@@ -179,14 +182,21 @@
             this.shareToolStripMenuItem,
             this.decodeToolStripMenuItem1});
             this.FileListMenu.Name = "FolderListMenu";
-            this.FileListMenu.Size = new System.Drawing.Size(153, 70);
+            this.FileListMenu.Size = new System.Drawing.Size(115, 48);
             // 
             // shareToolStripMenuItem
             // 
             this.shareToolStripMenuItem.Name = "shareToolStripMenuItem";
-            this.shareToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.shareToolStripMenuItem.Size = new System.Drawing.Size(114, 22);
             this.shareToolStripMenuItem.Text = "Share";
             this.shareToolStripMenuItem.Click += new System.EventHandler(this.shareToolStripMenuItem_Click);
+            // 
+            // decodeToolStripMenuItem1
+            // 
+            this.decodeToolStripMenuItem1.Name = "decodeToolStripMenuItem1";
+            this.decodeToolStripMenuItem1.Size = new System.Drawing.Size(114, 22);
+            this.decodeToolStripMenuItem1.Text = "Decode";
+            this.decodeToolStripMenuItem1.Click += new System.EventHandler(this.decodeToolStripMenuItem1_Click);
             // 
             // DCListMenu
             // 
@@ -202,12 +212,19 @@
             this.encodeToolStripMenuItem1.Text = "Encode";
             this.encodeToolStripMenuItem1.Click += new System.EventHandler(this.encodeToolStripMenuItem1_Click);
             // 
-            // decodeToolStripMenuItem1
+            // SharedWithMeMenu
             // 
-            this.decodeToolStripMenuItem1.Name = "decodeToolStripMenuItem1";
-            this.decodeToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
-            this.decodeToolStripMenuItem1.Text = "Decode";
-            this.decodeToolStripMenuItem1.Click += new System.EventHandler(this.decodeToolStripMenuItem1_Click);
+            this.SharedWithMeMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.decodeToolStripMenuItem});
+            this.SharedWithMeMenu.Name = "SharedWithMeMenu";
+            this.SharedWithMeMenu.Size = new System.Drawing.Size(153, 48);
+            // 
+            // decodeToolStripMenuItem
+            // 
+            this.decodeToolStripMenuItem.Name = "decodeToolStripMenuItem";
+            this.decodeToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.decodeToolStripMenuItem.Text = "Decode";
+            this.decodeToolStripMenuItem.Click += new System.EventHandler(this.decodeToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -232,6 +249,7 @@
             this.Text = "Drive Crypt";
             this.FileListMenu.ResumeLayout(false);
             this.DCListMenu.ResumeLayout(false);
+            this.SharedWithMeMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -256,6 +274,8 @@
         private System.Windows.Forms.ContextMenuStrip DCListMenu;
         private System.Windows.Forms.ToolStripMenuItem encodeToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem decodeToolStripMenuItem1;
+        private System.Windows.Forms.ContextMenuStrip SharedWithMeMenu;
+        private System.Windows.Forms.ToolStripMenuItem decodeToolStripMenuItem;
     }
 }
 
