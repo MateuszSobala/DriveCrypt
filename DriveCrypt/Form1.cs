@@ -365,6 +365,18 @@ namespace DriveCrypt
             return false;
         }
 
+        private bool isUserKey(string[] FilePath)
+        {
+            foreach (var item in FilePath)
+            {
+                if (item == "User keys")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void BuildTree(DirectoryInfo directoryInfo, TreeNodeCollection addInMe)
         {
             TreeNode curNode = addInMe.Add(directoryInfo.Name);
@@ -380,7 +392,7 @@ namespace DriveCrypt
                     node.ContextMenuStrip = FileListMenu;
                 else if (FileExtenstion.Last() == "dc" && checkDCListMenu(FilePath))
                     node.ContextMenuStrip = SharedWithMeMenu;
-                else if (FileExtenstion.Last() != "dc" && FileExtenstion.Last() != "flkey" && !checkFileListMenu(FilePath) && !checkDCListMenu(FilePath))
+                else if (FileExtenstion.Last() != "dc" && FileExtenstion.Last() != "flkey" && !checkFileListMenu(FilePath) && !checkDCListMenu(FilePath) && !isUserKey(FilePath))
                     node.ContextMenuStrip = DCListMenu;
                 curNode.Nodes.Add(node);
             }
