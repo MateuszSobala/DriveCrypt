@@ -462,6 +462,7 @@ namespace DriveCrypt
                 if (!IsValidEmail(emailToShare))
                 {
                     MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
 
                 GDriveManager.ShareFile(ofd.FileName, emailToShare, _authorizationForm._userInfo.Name);
