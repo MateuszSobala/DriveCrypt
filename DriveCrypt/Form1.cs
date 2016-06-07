@@ -20,6 +20,7 @@ namespace DriveCrypt
         private string _directoryPath;
         private FileSystemWatcher _decryptWatcher = null;
         private FileSystemWatcher _encryptWatcher = null;
+        private FileSystemWatcher _driveWatcher = null;
 
         private string[] _extensionsToBeIgnoredByWatcher = { FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, UserCryptor.PUB_KEY_EXTENSION };
 
@@ -112,7 +113,15 @@ namespace DriveCrypt
         public void onCreateEncryptEvent(object source, FileSystemEventArgs e)
         {
             string newPath = this._directoryPath + "\\My sharing";
-            FileAttributes atributes = File.GetAttributes(e.FullPath);
+            FileAttributes atributes;
+            try
+            {
+                atributes = File.GetAttributes(e.FullPath);
+            }
+            catch
+            {
+                return;
+            }
             if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
             {
                 var ext = (Path.GetExtension(e.FullPath) ?? string.Empty).ToLower();
@@ -126,6 +135,9 @@ namespace DriveCrypt
                     }
                     string newFilePath = e.FullPath;
                     newPath = newFilePath.Replace(newPath, this._directoryPath);
+                    
+                    System.IO.FileInfo file = new System.IO.FileInfo(newPath);
+                    file.Directory.Create();
                     File.Copy(e.FullPath, newPath, true);
                     while (IsFileLocked(newPath))
                     {
@@ -145,7 +157,6 @@ namespace DriveCrypt
                     }
                 }      
             }       
-            RefreshDirectoryList();
         }
 
 
@@ -184,7 +195,6 @@ namespace DriveCrypt
 
                 }
             }
-            RefreshDirectoryList();
         }
 
         public void onDeleteEvent(object source, FileSystemEventArgs e)
@@ -195,6 +205,11 @@ namespace DriveCrypt
         public void onCreateDcEvent(object source, FileSystemEventArgs e)
         {
             MessageBox.Show("DC Event File: " + e.FullPath + " " + e.ChangeType);
+            RefreshDirectoryList();
+        }
+
+        private void onCreateRefreshEvent(object sender, FileSystemEventArgs e)
+        {
             RefreshDirectoryList();
         }
 
@@ -238,13 +253,14 @@ namespace DriveCrypt
             _decryptWatcher.IncludeSubdirectories = true;
             _decryptWatcher.SynchronizingObject = this;
 
-           // _driveWatcher = new FileSystemWatcher("C:\\");
-           // _driveWatcher.Created += new FileSystemEventHandler(onCreateDcEvent);
-           // _driveWatcher.Changed += new FileSystemEventHandler(onChangeEvent);
-           // _driveWatcher.Filter = "*.dc";
-           // _driveWatcher.EnableRaisingEvents = true;
-           // _driveWatcher.IncludeSubdirectories = true;
-           // _driveWatcher.SynchronizingObject = this;
+            _driveWatcher = new FileSystemWatcher(this._directoryPath);
+            
+            _driveWatcher.Created += new FileSystemEventHandler(onCreateRefreshEvent);
+            _driveWatcher.Deleted += new FileSystemEventHandler(onCreateRefreshEvent);
+
+            _driveWatcher.EnableRaisingEvents = true;
+            _driveWatcher.IncludeSubdirectories = true;
+            _driveWatcher.SynchronizingObject = this;
         }
 
         private void chooseFolder_Click(object sender, EventArgs e)
@@ -339,7 +355,12 @@ namespace DriveCrypt
                 TreeNode node = new TreeNode();
                 node.Text = file.Name;
                 node.Tag = file.FullName;
-                node.ContextMenuStrip = FolderListMenu;
+                string[] FilePath = file.FullName.Split(Path.DirectorySeparatorChar);
+                string[] FileExtenstion = FilePath.Last().Split('.');
+                if(FileExtenstion.Last() == "dc")
+                    node.ContextMenuStrip = FileListMenu;
+                else if (FileExtenstion.Last() != "dc" && FileExtenstion.Last() != "flkey")
+                    node.ContextMenuStrip = DCListMenu;
                 curNode.Nodes.Add(node);
             }
             foreach (DirectoryInfo subdir in directoryInfo.GetDirectories())
@@ -545,31 +566,18 @@ namespace DriveCrypt
             SynchronizeFolder(_directoryPath);
         }
 
-        private void encodeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (FolderList.SelectedNode != null)
-            {
-
-                TreeNode SelectedNode = FolderList.SelectedNode;
-
-                string newPath = this._directoryPath + "\\My sharing";
-
-                string newFilePath = SelectedNode.Tag.ToString();
-                newPath = newFilePath.Replace(this._directoryPath, newPath);
-                File.Copy(SelectedNode.Tag.ToString(), newPath, true);
-            }
-        }
         private void shareToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (FolderList.SelectedNode != null)
             {
                 TreeNode SelectedNode = FolderList.SelectedNode;
                 string FilePath = SelectedNode.Tag.ToString();
-
+                
                 var emailToShare = emailInput.Text;
                 if (!IsValidEmail(emailToShare))
                 {
                     MessageBox.Show("Invalid email address!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
 
                 GDriveManager.ShareFile(FilePath, emailToShare, _authorizationForm._userInfo.Name);
@@ -592,6 +600,75 @@ namespace DriveCrypt
                 var keyFilenameWithoutPath = Path.GetFileName(keyFilename);
                 GDriveManager.UploadFile(keyFilename, keyFilenameWithoutPath);
                 GDriveManager.ShareFile(keyFilename, emailToShare, _authorizationForm._userInfo.Name);
+            }
+        }
+
+        private void encodeToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if (FolderList.SelectedNode != null)
+            {
+
+                TreeNode SelectedNode = FolderList.SelectedNode;
+
+                string newPath = this._directoryPath + "\\My sharing";
+
+                string newFilePath = SelectedNode.Tag.ToString();
+                newPath = newFilePath.Replace(this._directoryPath, newPath);
+                File.Copy(SelectedNode.Tag.ToString(), newPath, true);
+            }
+            else
+            {
+                MessageBox.Show("You must select the item (left click on it)", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+        }
+
+        private void decodeToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if (FolderList.SelectedNode != null)
+            {
+
+                TreeNode SelectedNode = FolderList.SelectedNode;
+
+                var ext = (Path.GetExtension(SelectedNode.Tag.ToString()) ?? string.Empty).ToLower();
+                if (_extensionsToBeIgnoredByWatcher[0] == ext)
+                {
+                    string newPath = this._directoryPath + "\\Shared with me";
+                    string newPath2 = this._directoryPath + "\\My sharing";
+                    FileAttributes atributes = File.GetAttributes(SelectedNode.Tag.ToString());
+                    if ((atributes & FileAttributes.Directory) != FileAttributes.Directory)
+                    {
+
+                        while (IsFileLocked(SelectedNode.Tag.ToString()))
+                        {
+                            //MessageBox.Show("The requested file " + Path.GetFileName(e.FullPath) + " already exists and is used by another process!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            //return;
+                            Thread.Sleep(100);
+                        }
+                        string newFilePath = SelectedNode.Tag.ToString();
+                        string decryptedFile = FileCryptor.DecryptFile(SelectedNode.Tag.ToString(), _authorizationForm._userCryptor);
+                        string[] decryptedFileName = decryptedFile.Split(Path.DirectorySeparatorChar);
+                        string toDelete = newFilePath;
+                        newPath = newFilePath.Replace(newPath, this._directoryPath);
+                        newPath = newFilePath.Replace(newPath2, this._directoryPath);
+                        string[] fileName = newPath.Split(Path.DirectorySeparatorChar);
+                        newPath = newPath.Replace(fileName.Last(), decryptedFileName.Last());
+                        toDelete = toDelete.Replace(fileName.Last(), decryptedFileName.Last());
+
+                        System.IO.FileInfo file = new System.IO.FileInfo(newPath);
+                        file.Directory.Create();
+                        
+                        File.Copy(decryptedFile, newPath, true);
+                        File.Delete(toDelete);
+                        while (IsFileLocked(newPath))
+                        {
+                            //MessageBox.Show("The requested file " + Path.GetFileName(e.FullPath) + " already exists and is used by another process!", "Drive Crypt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            //return;
+                            Thread.Sleep(100);
+                        }
+
+                    }
+                }
             }
         }
     }

@@ -43,10 +43,13 @@
             this.sharePublicKey = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.FolderList = new System.Windows.Forms.TreeView();
-            this.FolderListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.encodeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.FileListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.shareToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.FolderListMenu.SuspendLayout();
+            this.DCListMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.encodeToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.decodeToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.FileListMenu.SuspendLayout();
+            this.DCListMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // button1
@@ -170,20 +173,13 @@
             this.FolderList.Size = new System.Drawing.Size(285, 242);
             this.FolderList.TabIndex = 19;
             // 
-            // FolderListMenu
+            // FileListMenu
             // 
-            this.FolderListMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.encodeToolStripMenuItem,
-            this.shareToolStripMenuItem});
-            this.FolderListMenu.Name = "FolderListMenu";
-            this.FolderListMenu.Size = new System.Drawing.Size(153, 70);
-            // 
-            // encodeToolStripMenuItem
-            // 
-            this.encodeToolStripMenuItem.Name = "encodeToolStripMenuItem";
-            this.encodeToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.encodeToolStripMenuItem.Text = "Encode";
-            this.encodeToolStripMenuItem.Click += new System.EventHandler(this.encodeToolStripMenuItem_Click);
+            this.FileListMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.shareToolStripMenuItem,
+            this.decodeToolStripMenuItem1});
+            this.FileListMenu.Name = "FolderListMenu";
+            this.FileListMenu.Size = new System.Drawing.Size(153, 70);
             // 
             // shareToolStripMenuItem
             // 
@@ -191,6 +187,27 @@
             this.shareToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.shareToolStripMenuItem.Text = "Share";
             this.shareToolStripMenuItem.Click += new System.EventHandler(this.shareToolStripMenuItem_Click);
+            // 
+            // DCListMenu
+            // 
+            this.DCListMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.encodeToolStripMenuItem1});
+            this.DCListMenu.Name = "DCListMenu";
+            this.DCListMenu.Size = new System.Drawing.Size(114, 26);
+            // 
+            // encodeToolStripMenuItem1
+            // 
+            this.encodeToolStripMenuItem1.Name = "encodeToolStripMenuItem1";
+            this.encodeToolStripMenuItem1.Size = new System.Drawing.Size(113, 22);
+            this.encodeToolStripMenuItem1.Text = "Encode";
+            this.encodeToolStripMenuItem1.Click += new System.EventHandler(this.encodeToolStripMenuItem1_Click);
+            // 
+            // decodeToolStripMenuItem1
+            // 
+            this.decodeToolStripMenuItem1.Name = "decodeToolStripMenuItem1";
+            this.decodeToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
+            this.decodeToolStripMenuItem1.Text = "Decode";
+            this.decodeToolStripMenuItem1.Click += new System.EventHandler(this.decodeToolStripMenuItem1_Click);
             // 
             // Form1
             // 
@@ -213,7 +230,8 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "Drive Crypt";
-            this.FolderListMenu.ResumeLayout(false);
+            this.FileListMenu.ResumeLayout(false);
+            this.DCListMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -233,9 +251,11 @@
         private System.Windows.Forms.Button sharePublicKey;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.TreeView FolderList;
-        private System.Windows.Forms.ContextMenuStrip FolderListMenu;
-        private System.Windows.Forms.ToolStripMenuItem encodeToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip FileListMenu;
         private System.Windows.Forms.ToolStripMenuItem shareToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip DCListMenu;
+        private System.Windows.Forms.ToolStripMenuItem encodeToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem decodeToolStripMenuItem1;
     }
 }
 
