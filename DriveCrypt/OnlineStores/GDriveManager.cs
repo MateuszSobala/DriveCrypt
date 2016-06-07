@@ -138,6 +138,27 @@ namespace DriveCrypt.OnlineStores
 
         public static void ShareFile(string filePath, string recipientEmail, string senderName, RoleType roleType = RoleType.reader)
         {
+            var fileToShare = MySharingDriveFiles.FirstOrDefault(f => filePath.EndsWith(f.Key));
+
+            if (fileToShare.Value != null)
+            {
+                var fileId = fileToShare.Value.Id;
+                var filename = fileToShare.Value.Name;
+
+                ShareFileById(fileId, filename, recipientEmail, senderName, roleType);
+            }
+            else
+            {
+                var keyFilenameWithoutPath = Path.GetFileName(filePath);
+
+                var file = UploadFile(filePath, keyFilenameWithoutPath);
+
+                ShareFileById(file.Id, keyFilenameWithoutPath, recipientEmail, senderName, roleType);
+            }
+        }
+
+        private static void ShareFileById(string fileId, string filename, string recipientEmail, string senderName, RoleType roleType)
+        {
             var batch = new BatchRequest(DriveService);
             BatchRequest.OnResponse<Permission> callback = delegate (
                 Permission permission,
@@ -156,29 +177,21 @@ namespace DriveCrypt.OnlineStores
             userPermission.Role = roleType.ToString();
             userPermission.EmailAddress = recipientEmail;
 
-            var fileToShare = MySharingDriveFiles.FirstOrDefault(f => filePath.EndsWith(f.Key));
-
-            if (fileToShare.Value != null)
+            var request = DriveService.Permissions.Create(userPermission, fileId);
+            request.Fields = "id";
+            if (Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION)
             {
-                var fileId = fileToShare.Value.Id;
-                var filename = fileToShare.Value.Name;
-
-                var request = DriveService.Permissions.Create(userPermission, fileId);
-                request.Fields = "id";
-                if (Path.GetExtension(filename) == FileCryptor.DRIVE_CRYPT_EXTENSTION)
-                {
-                    request.SendNotificationEmail = true;
-                    request.EmailMessage = string.Format("{0} has shared the following encoded file with you:\n{1}\nwhich you can view under http://drive.google.com/file/d/{2} \nbut it can only be readable after decoding, using DriveCrypt application.", senderName, filename, fileId);
-                }
-                else
-                {
-                    request.SendNotificationEmail = false;
-                }
-
-                batch.Queue(request, callback);
-
-                batch.ExecuteAsync();
+                request.SendNotificationEmail = true;
+                request.EmailMessage = string.Format("{0} has shared the following encoded file with you:\n{1}\nwhich you can view under http://drive.google.com/file/d/{2} \nbut it can only be readable after decoding, using DriveCrypt application.", senderName, filename, fileId);
             }
+            else
+            {
+                request.SendNotificationEmail = false;
+            }
+
+            batch.Queue(request, callback);
+
+            batch.ExecuteAsync();
         }
 
         public static void SyncFiles()
@@ -512,7 +525,7 @@ namespace DriveCrypt.OnlineStores
 
             var request = DriveService.Files.List();
             request.Fields = "files(modifiedTime, name, parents, id)";
-            request.Q = string.Format("(name contains '{0}' OR name contains '{1}') AND '{2}' in owners AND mimeType!='application/vnd.google-apps.folder' AND trashed = false AND not '{3}' in parents", FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, userInfo.Email, MainFolderId);
+            request.Q = string.Format("(name contains '{0}' OR name contains '{1}' OR name contains '{2}') AND '{3}' in owners AND mimeType!='application/vnd.google-apps.folder' AND trashed = false AND not '{4}' in parents", FileCryptor.DRIVE_CRYPT_EXTENSTION, FileCryptor.FILE_KEY_EXTENSION, UserCryptor.PUB_KEY_EXTENSION, userInfo.Email, MainFolderId);
 
             var response = request.Execute();
 

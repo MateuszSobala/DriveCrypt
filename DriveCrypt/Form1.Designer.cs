@@ -196,7 +196,7 @@
             this.decodeToolStripMenuItem1.Name = "decodeToolStripMenuItem1";
             this.decodeToolStripMenuItem1.Size = new System.Drawing.Size(114, 22);
             this.decodeToolStripMenuItem1.Text = "Decode";
-            this.decodeToolStripMenuItem1.Click += new System.EventHandler(this.decodeToolStripMenuItem1_Click);
+            this.decodeToolStripMenuItem1.Click += new System.EventHandler(this.decodeToolStripMenuItem_Click);
             // 
             // DCListMenu
             // 

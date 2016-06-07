@@ -75,6 +75,26 @@ namespace DriveCrypt.Cryptography
             return sInputFilename.Substring(0, sInputFilename.Length - DRIVE_CRYPT_EXTENSTION.Length);
         }
 
+        public static void DecryptFile(string sInputFilename, string sOutputFilename, UserCryptor userCryptor)
+        {
+            // Must be 64 bits, 8 bytes.
+            // Distribute this key to the user who will decrypt this file.
+            string sSecretKey;
+
+            // Get the key for the file to encrypt.
+            sSecretKey = userCryptor.DecryptKey(ResolveKeyFileNameForDecode(sInputFilename, userCryptor.UserId));
+
+            // For additional security pin the key.
+            GCHandle gch = GCHandle.Alloc(sSecretKey, GCHandleType.Pinned);
+
+            // Decrypt the file.
+            Decrypt(sInputFilename, sOutputFilename, sSecretKey);
+
+            // Remove the key from memory.
+            ZeroMemory(gch.AddrOfPinnedObject(), sSecretKey.Length * 2);
+            gch.Free();
+        }
+
         public static string PrepareKeyForSharing(string sInputFilename, UserCryptor decryptor, UserCryptor encryptor)
         {
             // Must be 64 bits, 8 bytes.
