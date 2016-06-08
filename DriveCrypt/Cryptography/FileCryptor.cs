@@ -156,6 +156,7 @@ namespace DriveCrypt.Cryptography
             //DES decryption transform on incoming bytes.
             CryptoStream cryptostreamDecr = new CryptoStream(fsread, desdecrypt, CryptoStreamMode.Read);
             //Print the contents of the decrypted file.
+            Directory.CreateDirectory(Path.GetDirectoryName(sOutputFilename) ?? string.Empty);
             FileStream fsDecrypted = new FileStream(sOutputFilename, FileMode.Create);
 
             int data;
